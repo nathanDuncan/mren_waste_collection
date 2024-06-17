@@ -3,7 +3,7 @@
 
     <!-- Receiver Node (Receives data from Host running vision) -->
     <node pkg="mren_waste_collector" type="receiver.py" name="receiver_node" output="screen">
-        <param name="port" value="25000"/>
+        <param name="port" value="25006"/>
         <param name="center_x" value="320.0"/>
         <param name="center_y" value="240.0"/>
     </node>
