@@ -1,0 +1,5 @@
+<launch>
+
+  <node pkg="unitree_legged_real" type="ros_example_walk" name="walk_ros" output="screen"/>
+
+</launch>
