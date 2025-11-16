@@ -1,0 +1,19 @@
+<launch>
+
+  <!-- 1. Start the TurtleSim Simulator -->
+  <!-- This is the 'robot' we are controlling. -->
+  <node pkg="turtlesim" type="turtlesim_node" name="turtlesim_node" />
+
+  <!-- 2. Start the Webcam Publisher -->
+  <!-- This node reads from your laptop's camera and publishes to /camera_frames -->
+  <node pkg="mren_waste_collector" type="webcam_publisher.py" name="webcam_publisher" output="screen" />
+
+  <!-- 3. Start the Orange Error Publisher (Perception Node) -->
+  <!-- This node reads /camera_frames and publishes /control_errors -->
+  <node pkg="mren_waste_collector" type="orange_error_publisher.py" name="orange_error_publisher" output="screen" />
+
+  <!-- 4. Start the TurtleSim Controller (Control Node) -->
+  <!-- This node reads /control_errors and publishes /turtle1/cmd_vel -->
+  <node pkg="mren_waste_collector" type="turtlesim_controller.py" name="turtlesim_controller" output="screen" />
+
+</launch>
