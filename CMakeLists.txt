@@ -106,6 +106,7 @@ include_directories(
 ## Mark executable scripts (Python etc.) for installation
 catkin_install_python(PROGRAMS
   scripts/webcam_publisher.py
+  scripts/realsense_publisher.py
   scripts/wasd_teleop.py
   scripts/orange_error_publisher.py
   scripts/turtlesim_controller.py
