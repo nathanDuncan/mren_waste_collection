@@ -17,7 +17,7 @@ def main():
     
     # Publisher for Depth frames (16-bit grayscale)
     # We use the standard topic name pattern for depth
-    depth_pub = rospy.Publisher('/camera_depth', Image, queue_size=10)
+    depth_pub = rospy.Publisher('/camera/depth/image_raw', Image, queue_size=10)
 
     # Create a CvBridge object
     bridge = CvBridge()
@@ -28,9 +28,13 @@ def main():
 
     # Get device info (optional, just for logging)
     pipeline_wrapper = rs.pipeline_wrapper(pipeline)
-    pipeline_profile = config.resolve(pipeline_wrapper)
-    device = pipeline_profile.get_device()
-    rospy.loginfo(f"RealSense device found: {device.get_info(rs.camera_info.name)}")
+    try:
+        pipeline_profile = config.resolve(pipeline_wrapper)
+        device = pipeline_profile.get_device()
+        rospy.loginfo(f"RealSense device found: {device.get_info(rs.camera_info.name)}")
+    except RuntimeError as e:
+        rospy.logerr(f"RealSense not found: {e}")
+        return
 
     # --- Configure Streams ---
     # 1. Enable Color Stream (640x480, 30fps, RGB8)
@@ -68,6 +72,7 @@ def main():
             # Publish Color
             try:
                 ros_color_msg = bridge.cv2_to_imgmsg(color_image, "bgr8")
+                ros_color_msg.header.stamp = rospy.Time.now() # Timestamp for sync
                 color_pub.publish(ros_color_msg)
             except CvBridgeError as e:
                 rospy.logerr(f"Color Bridge Error: {e}")
@@ -80,6 +85,7 @@ def main():
             # Note: We use "16UC1" encoding for 16-bit unsigned single-channel image
             try:
                 ros_depth_msg = bridge.cv2_to_imgmsg(depth_image, "16UC1")
+                ros_depth_msg.header.stamp = rospy.Time.now() # Timestamp for sync
                 depth_pub.publish(ros_depth_msg)
             except CvBridgeError as e:
                 rospy.logerr(f"Depth Bridge Error: {e}")
