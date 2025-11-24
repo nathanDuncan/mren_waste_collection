@@ -66,6 +66,24 @@ set_target_properties(go1_teleop_key_node
 )
 #--- End of new section ---
 
+#--- Add this for the C++ simple servoing node ---
+add_executable(simple_servoing_node src/simple_servoing_node.cpp)
+add_dependencies(simple_servoing_node ${catkin_EXPORTED_TARGETS})
+target_link_libraries(simple_servoing_node
+  ${catkin_LIBRARIES}
+  ${unitree_legged_sdk_LIBRARIES}
+)
+install(TARGETS simple_servoing_node
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+set_target_properties(simple_servoing_node
+  PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CATKIN_DEVEL_PREFIX}/lib/${PROJECT_NAME}"
+)
+#--- End of new section ---
+
 
 
 
