@@ -1,3 +1,7 @@
+/**
+ * @file go1_teleop_key.cpp
+ * @brief Keyboard teleoperation node for Unitree Go1.
+ */
 #include <ros/ros.h>
 #include <unitree_legged_msgs/HighCmd.h>
 #include "unitree_legged_sdk/unitree_legged_sdk.h" // <-- 1. ADDED SDK INCLUDE
@@ -95,7 +99,8 @@ private:
 KeyboardReader input;
 
 /**
- * @brief Main class for Go1 teleoperation.
+ * @class TeleopGo1
+ * @brief Translates keyboard inputs into HighCmd messages.
  */
 class TeleopGo1
 {
@@ -145,6 +150,11 @@ void TeleopGo1::shutdown()
   input.shutdown();
 }
 
+/**
+* @brief Reads keyboard state and publishes velocity commands.
+* * Handles the logic for switching between 'Stand' and 'Walk' modes
+* based on input presence.
+*/
 void TeleopGo1::keyLoop()
 {
   char c;
