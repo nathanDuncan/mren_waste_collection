@@ -1,0 +1,28 @@
+site_name: mren_waste_collection Docs
+theme:
+  name: material
+
+plugins:
+  - search
+  - mkdoxy:
+      projects:
+        mren_ros_pkg:
+          src-dirs: src
+          full-doc: True
+          doxy-cfg:
+            GENERATE_XML: True
+            EXTRACT_ALL: True
+            EXTRACT_PRIVATE: True
+            EXTRACT_LOCAL_CLASSES: True
+            EXTRACT_STATIC: True
+            FILE_PATTERNS: "*.cpp *.h *.hpp *.ino"
+            RECURSIVE: True
+            EXTENSION_MAPPING: "ino=C++"
+
+nav:
+  - Home: index.md
+  - Nodes:
+      # Link directly to the generated Doxygen file
+      - Teleop Node: mren_ros_pkg/classTeleopGo1.md
+      - Simple Servoing: mren_ros_pkg/classSimpleServoing.md
+      - Keyboard Helper: mren_ros_pkg/classKeyboardReader.md

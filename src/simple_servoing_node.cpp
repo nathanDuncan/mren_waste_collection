@@ -1,3 +1,9 @@
+/**
+ * @file simple_servoing_node.cpp
+ * @brief Visual servoing node for the Unitree Go1 used in Fall Sketch Model Presentation.
+ * * This node subscribes to control errors and publishes high-level commands
+ * to align the robot with a target.
+ */
 #include <ros/ros.h>
 #include <unitree_legged_msgs/HighCmd.h>
 #include <geometry_msgs/Quaternion.h>
@@ -5,9 +11,18 @@
 
 using namespace UNITREE_LEGGED_SDK;
 
+/**
+ * @class SimpleServoing
+ * @brief Main controller class for visual tracking.
+ * * Implements a Proportional (P) controller to adjust Yaw and Pitch
+ * based on visual error inputs.
+ */
 class SimpleServoing
 {
 public:
+    /**
+     * @brief Constructor. Initializes ROS handles and control gains.
+     */
     SimpleServoing()
     {
         // --- Tunable Gains ---
@@ -37,6 +52,10 @@ public:
         timer_ = nh_.createTimer(ros::Duration(0.02), &SimpleServoing::controlLoop, this);
     }
 
+    /**
+     * @brief Callback for error updates.
+     * @param msg The quaternion message containing error data (x=u, y=v).
+     */
     void errorCallback(const geometry_msgs::Quaternion::ConstPtr& msg)
     {
         // Map the Quaternion fields back to our error definition
@@ -52,6 +71,11 @@ public:
         target_visible_ = (msg->w > 0.5);
     }
 
+    /**
+     * @brief Main control loop (50Hz).
+     * * Calculates the required yaw/pitch velocity and publishes the HighCmd.
+     * @param event ROS Timer event.
+     */
     void controlLoop(const ros::TimerEvent&)
     {
         unitree_legged_msgs::HighCmd cmd;
@@ -131,8 +155,8 @@ private:
     double error_v_;
     bool target_visible_;
 
-    double kp_yaw_;
-    double kp_pitch_;
+    double kp_yaw_;       ///< Proportional gain for Yaw control.
+    double kp_pitch_;     ///< Proportional gain for Pitch control.
     double max_yaw_rate_;
     double max_pitch_;
     

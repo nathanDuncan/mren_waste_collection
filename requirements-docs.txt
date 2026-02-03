@@ -1,0 +1,4 @@
+mkdocs
+mkdocs-material
+mkdoxy              # The bridge for C++ (Doxygen)
+mkdocstrings[python] # The bridge for Python
