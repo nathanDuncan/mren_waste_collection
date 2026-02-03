@@ -129,6 +129,8 @@ catkin_install_python(PROGRAMS
   scripts/wasd_teleop.py
   scripts/orange_error_publisher.py
   scripts/turtlesim_controller.py
+  scripts/sender_node.py
+  scripts/receiver.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

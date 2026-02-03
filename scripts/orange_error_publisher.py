@@ -29,8 +29,8 @@ class ErrorCalculator:
         self.image_center_v = 0
 
         # ROS Publishers
-        # Changed to Quaternion to match YOLO node
-        self.error_pub = rospy.Publisher('/control_errors', Quaternion, queue_size=10)
+        # Publishing raw target data: x (u), y (v), z (h), w (found)
+        self.target_pub = rospy.Publisher('/target_pixel_data', Quaternion, queue_size=10)
         self.debug_image_pub = rospy.Publisher('/orange_detector/debug_image', Image, queue_size=10)
         self.mask_pub = rospy.Publisher('/orange_detector/debug_mask', Image, queue_size=10)
 
@@ -71,8 +71,8 @@ class ErrorCalculator:
 
         debug_mask_bgr = cv2.cvtColor(mask_closed, cv2.COLOR_GRAY2BGR)
 
-        # --- Calculate Errors ---
-        error_msg = Quaternion() # Using Quaternion now
+        # --- Calculate Raw Data (Not Error) ---
+        target_msg = Quaternion() 
         
         if best_contour is not None:
             x, y, w, h = cv2.boundingRect(best_contour)
@@ -80,27 +80,23 @@ class ErrorCalculator:
             centroid_u = x + (w / 2.0)
             centroid_v = y + (h / 2.0)
             
-            e_u = centroid_u - self.image_center_u
-            e_v = centroid_v - self.image_center_v
-            e_s = self.S_TARGET - h
-            
-            # Map to Quaternion fields (same as YOLO node)
-            error_msg.x = e_u
-            error_msg.y = e_v
-            error_msg.z = e_s
-            error_msg.w = 1.0  # Flag: Found
+            # Publish raw pixel location and size (as depth proxy)
+            target_msg.x = centroid_u
+            target_msg.y = centroid_v
+            target_msg.z = float(h) # Using height as depth proxy
+            target_msg.w = 1.0  # Flag: Found
             
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 3)
             cv2.circle(frame, (int(centroid_u), int(centroid_v)), 5, (0, 0, 255), -1)
             cv2.rectangle(debug_mask_bgr, (x, y), (x + w, y + h), (255, 0, 0), 2)
             
         else:
-            error_msg.x = 0.0
-            error_msg.y = 0.0
-            error_msg.z = 0.0
-            error_msg.w = 0.0 # Flag: Not found
+            target_msg.x = 0.0
+            target_msg.y = 0.0
+            target_msg.z = 0.0
+            target_msg.w = 0.0 # Flag: Not found
 
-        self.error_pub.publish(error_msg)
+        self.target_pub.publish(target_msg)
         
         try:
             debug_ros_image = self.bridge.cv2_to_imgmsg(frame, "bgr8")

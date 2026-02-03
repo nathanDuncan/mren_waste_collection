@@ -1,0 +1,15 @@
+<launch>
+    <!-- Host Computer Launch -->
+    <!-- 1. Realsense Publisher -->
+    <node pkg="mren_waste_collector" type="realsense_publisher.py" name="realsense_publisher" output="screen"/>
+
+    <!-- 2. Orange Detector (modified to publish raw data) -->
+    <node pkg="mren_waste_collector" type="orange_error_publisher.py" name="orange_error_publisher" output="screen"/>
+
+    <!-- 3. Sender Node (sends data to secondary) -->
+    <node pkg="mren_waste_collector" type="sender_node.py" name="sender_node" output="screen">
+        <!-- Set the IP of the SECONDARY computer here -->
+        <param name="secondary_ip" value="192.168.123.15"/> 
+        <param name="port" value="25000"/>
+    </node>
+</launch>
