@@ -4,98 +4,123 @@ import rospy
 import cv2
 import numpy as np
 import pyrealsense2 as rs
+import time
+import sys
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
+
+def hardware_reset_camera():
+    """
+    Forces a hardware reset on the first connected RealSense device.
+    Useful for kicking the camera out of a 'zombie' state.
+    """
+    try:
+        ctx = rs.context()
+        devices = ctx.query_devices()
+        
+        if len(devices) == 0:
+            rospy.logwarn("No RealSense devices detected during reset attempt.")
+            return
+
+        dev = devices[0]
+        rospy.loginfo(f"Resetting device: {dev.get_info(rs.camera_info.name)}")
+        try:
+            rospy.loginfo(f"Firmware Version: {dev.get_info(rs.camera_info.firmware_version)}")
+        except:
+            pass
+        dev.hardware_reset()
+        
+        # Wait for the camera to cycle power and reconnect (usually takes 3-5 seconds)
+        rospy.loginfo("Waiting 5 seconds for camera to restart...")
+        time.sleep(5)
+    except Exception as e:
+        rospy.logerr(f"Error during reset: {e}")
 
 def main():
     # Initialize the ROS node
     rospy.init_node('realsense_publisher', anonymous=True)
 
-    # --- Publishers ---
-    # Publisher for RGB color frames
-    color_pub = rospy.Publisher('/camera_frames', Image, queue_size=10)
+    rospy.loginfo("--- STARTING COLOR ONLY MODE ---")
+    rospy.loginfo("Configuration: Color Only, 15 FPS, 640x480")
     
-    # Publisher for Depth frames (16-bit grayscale)
-    # We use the standard topic name pattern for depth
-    depth_pub = rospy.Publisher('/camera/depth/image_raw', Image, queue_size=10)
+    # 1. Attempt a hardware reset to clear "Frame didn't arrive" errors
+    hardware_reset_camera()
 
-    # Create a CvBridge object
+    # --- Publishers ---
+    # Only publishing color now
+    color_pub = rospy.Publisher('/camera_frames', Image, queue_size=10)
+
     bridge = CvBridge()
 
     # --- RealSense Setup ---
     pipeline = rs.pipeline()
     config = rs.config()
 
-    # Get device info (optional, just for logging)
+    # Get device info
     pipeline_wrapper = rs.pipeline_wrapper(pipeline)
     try:
         pipeline_profile = config.resolve(pipeline_wrapper)
         device = pipeline_profile.get_device()
         rospy.loginfo(f"RealSense device found: {device.get_info(rs.camera_info.name)}")
+        
+        # Check USB Type (Critical for diagnosing bandwidth)
+        usb_type = device.get_info(rs.camera_info.usb_type_descriptor)
+        rospy.loginfo(f"USB Connection Type: {usb_type}")
+        if "2.1" in usb_type:
+            rospy.logwarn("WARNING: Camera detected as USB 2.1. Bandwidth is severely limited.")
+        
     except RuntimeError as e:
         rospy.logerr(f"RealSense not found: {e}")
         return
 
-    # --- Configure Streams ---
-    # 1. Enable Color Stream (640x480, 30fps, RGB8)
-    config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+    # --- Configure Streams (COLOR ONLY) ---
+    # 1. Enable Color Stream
+    # 640x480 @ 15 FPS is a good balance for stability
+    config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 15)
     
-    # 2. Enable Depth Stream (640x480, 30fps, Z16)
-    # Z16 format is 16-bit unsigned integer, representing depth in millimeters.
-    config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+    # 2. Disable Depth Stream explicitly to save bandwidth
+    config.disable_stream(rs.stream.depth)
 
     # Start streaming
     try:
         pipeline.start(config)
-        rospy.loginfo("RealSense pipeline started (Color + Depth).")
+        rospy.loginfo("RealSense pipeline started (Color Only @ 15fps).")
     except RuntimeError as e:
         rospy.logerr(f"RealSense error: {e}")
         return
 
-    # Set the loop rate
-    rate = rospy.Rate(30) # 30 Hz
+    rate = rospy.Rate(15) # Match the camera FPS
 
     try:
         while not rospy.is_shutdown():
-            # 1. Wait for a coherent pair of frames: depth and color
-            frames = pipeline.wait_for_frames()
+            # Wait for frames with a timeout (default is 5000ms)
+            try:
+                frames = pipeline.wait_for_frames(timeout_ms=5000)
+            except RuntimeError as e:
+                rospy.logerr("CRITICAL: Timeout waiting for frames.")
+                rospy.logerr("DIAGNOSIS HINT: Check 'dmesg | grep -i usb' for disconnects.")
+                continue
+
             color_frame = frames.get_color_frame()
-            depth_frame = frames.get_depth_frame()
             
-            if not color_frame or not depth_frame:
+            if not color_frame:
                 continue
 
             # --- Process Color Frame ---
-            # Convert to numpy array
             color_image = np.asanyarray(color_frame.get_data())
-            
-            # Publish Color
             try:
                 ros_color_msg = bridge.cv2_to_imgmsg(color_image, "bgr8")
-                ros_color_msg.header.stamp = rospy.Time.now() # Timestamp for sync
+                ros_color_msg.header.stamp = rospy.Time.now()
                 color_pub.publish(ros_color_msg)
+                # rospy.loginfo_throttle(5, "Success: Publishing color frames...") 
             except CvBridgeError as e:
                 rospy.logerr(f"Color Bridge Error: {e}")
-
-            # --- Process Depth Frame ---
-            # Convert to numpy array (16-bit)
-            depth_image = np.asanyarray(depth_frame.get_data())
-            
-            # Publish Depth
-            # Note: We use "16UC1" encoding for 16-bit unsigned single-channel image
-            try:
-                ros_depth_msg = bridge.cv2_to_imgmsg(depth_image, "16UC1")
-                ros_depth_msg.header.stamp = rospy.Time.now() # Timestamp for sync
-                depth_pub.publish(ros_depth_msg)
-            except CvBridgeError as e:
-                rospy.logerr(f"Depth Bridge Error: {e}")
 
             rate.sleep()
 
     except rospy.ROSInterruptException:
         pass
     finally:
-        # Stop streaming
         pipeline.stop()
         rospy.loginfo("RealSense pipeline stopped.")
 

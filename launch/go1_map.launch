@@ -1,0 +1,16 @@
+<launch>
+    <node pkg="tf" type="static_transform_publisher" name="base_to_laser" args="0 0 0 0 0 0 base_link laser_frame 100" />
+    <include file="$(find rplidar_ros)/launch/rplidar_c1.launch" />
+    <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
+       <!--
+       <param name="scan_topic" value="/deskew_scan"/>
+       --> 
+    </node>
+</launch>
+
+
+<!--
+rosrun rviz rviz
+roslaunch <package_name> <filename.launch>
+-->
+ 
