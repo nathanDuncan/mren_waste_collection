@@ -1,0 +1,26 @@
+<launch>
+
+    <!-- Receiver Node (Receives data from Host running vision) -->
+    <node pkg="mren_waste_collector" type="receiver.py" name="receiver_node" output="screen">
+        <param name="port" value="25000"/>
+        <param name="center_x" value="320.0"/>
+        <param name="center_y" value="240.0"/>
+    </node>
+
+    <!-- Launch unitree_legged_real -->
+    <!-- <include file="$(find unitree_legged_real)/launch/real.launch">
+        <arg name="ctrl_level" value="highlevel"/>
+    </include> -->
+
+    <!-- Launch mren_waste_collector nodes -->
+    <!-- <node pkg="mren_waste_collector" type="simple_servoing_node" name="simple_servoing_node" output="screen"/> -->
+
+    <!-- Launch open_manipulator_controller -->
+    <!-- <include file="$(find open_manipulator_controller)/launch/open_manipulator_controller.launch"/> -->
+
+    <!-- Launch manipulator preset controller -->
+    <!-- <node pkg="unified_launcher" type="manipulator_preset_controller.py" name="manipulator_preset_controller" output="screen"/> -->
+
+    <!-- Launch manipulator direct controller -->
+    <!-- <node pkg="unified_launcher" type="manipulator_direct_controller.py" name="manipulator_direct_controller" output="screen"/> -->
+</launch>

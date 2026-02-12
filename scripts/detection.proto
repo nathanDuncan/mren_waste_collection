@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+message TrashObject {
+        float x_pos = 1;
+        float y_pos = 2; 
+        float dist_meters = 3; 
+        float width_cm = 4;
+        float lenght_cm = 5;
+        float angle = 6;
+}
+
+message DetectionFrame {
+        repeated TrashObject objects = 1;
+}

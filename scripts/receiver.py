@@ -2,60 +2,86 @@
 
 import rospy
 import socket
-import struct
+import sys
+import os
 from geometry_msgs.msg import Quaternion
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+if script_dir not in sys.path:
+    sys.path.append(script_dir)
+
+# Attempt to import the proto definition
+try:
+    import detection_pb2
+except ImportError:
+    print(f"❌ CRITICAL: detection_pb2.py not found in {script_dir}")
+    sys.exit(1)
 
 class ReceiverNode:
     def __init__(self):
-        rospy.init_node('receiver_node')
+        rospy.init_node('receiver_node', log_level=rospy.DEBUG)
         
         self.port = rospy.get_param('~port', 25000)
         self.center_x = rospy.get_param('~center_x', 320.0)
         self.center_y = rospy.get_param('~center_y', 240.0)
         
+        # Setup UDP Socket
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.bind(("0.0.0.0", self.port))
-        self.sock.settimeout(0.1) # Non-blocking with timeout for ROS spin
+        try:
+            self.sock.bind(("0.0.0.0", self.port))
+        except Exception as e:
+            print(f"❌ Socket Bind Error: {e}")
+            sys.exit(1)
+            
+        self.sock.settimeout(0.5) 
         
         self.error_pub = rospy.Publisher('/control_errors', Quaternion, queue_size=10)
         
-        rospy.loginfo(f"Receiver Node Listening on port {self.port}")
+        rospy.loginfo(f"✅ Protobuf Receiver Listening on port {self.port}")
+        print(f"--- Manual Debug: Listening on port {self.port} ---")
 
     def run(self):
         rate = rospy.Rate(50)
         while not rospy.is_shutdown():
             try:
-                data, addr = self.sock.recvfrom(1024)
-                if len(data) == 16: # 4 floats
-                    x, y, depth, flag = struct.unpack('ffff', data)
+                # Receive raw data
+                data, addr = self.sock.recvfrom(4096)
+                
+                # DIAGNOSTIC: Print raw info immediately
+                print(f"📩 Received {len(data)} bytes from {addr}")
+                
+                # Parse Protobuf
+                frame = detection_pb2.DetectionFrame()
+                frame.ParseFromString(data)
+                
+                error_msg = Quaternion()
+                
+                if len(frame.objects) > 0:
+                    obj = frame.objects[0] # Take first detected object
                     
-                    error_msg = Quaternion()
+                    # Calculate error
+                    err_x = obj.x_pos - self.center_x
+                    err_y = obj.y_pos - self.center_y
                     
-                    if flag > 0.5:
-                        # Calculate Error (Target - Center) 
-                        # Or (Current - Target)? 
-                        # simple_servoing expects:
-                        # P-Control: cmd = -kp * error.
-                        # If error is positive, we turn negative. 
-                        # If Target is Right (x > center), Error should be Positive.
-                        # So Error = x - center.
-                        
-                        error_msg.x = x - self.center_x
-                        error_msg.y = y - self.center_y
-                        error_msg.z = depth # Pass through depth/size
-                        error_msg.w = 1.0   # Found
-                    else:
-                        error_msg.x = 0.0
-                        error_msg.y = 0.0
-                        error_msg.z = 0.0
-                        error_msg.w = 0.0   # Not found
-                        
-                    self.error_pub.publish(error_msg)
+                    error_msg.x = err_x
+                    error_msg.y = err_y
+                    error_msg.z = obj.dist_meters
+                    error_msg.w = 1.0 # Detection flag
+                    
+                    rospy.loginfo(f"🎯 Object: dist={obj.dist_meters:.2f}m, err_x={err_x:.1f}")
+                    print(f"   -> Detection: X:{obj.x_pos:.1f}, Dist:{obj.dist_meters:.2f}m")
+                else:
+                    error_msg.w = 0.0 # No objects in frame
+                    print("   -> Empty frame received (0 objects)")
+                
+                self.error_pub.publish(error_msg)
                     
             except socket.timeout:
+                # This is normal, happens every 0.5s if no data arrives
                 pass
             except Exception as e:
-                rospy.logerr(f"Receiver Error: {e}")
+                rospy.logerr(f"Receiver Logic Error: {e}")
+                print(f"❌ Error: {e}")
             
             rate.sleep()
 
