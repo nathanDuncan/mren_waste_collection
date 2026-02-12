@@ -5,6 +5,7 @@ import socket
 import sys
 import os
 from geometry_msgs.msg import Quaternion
+from std_msgs.msg import Float32MultiArray
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
@@ -35,7 +36,7 @@ class ReceiverNode:
             
         self.sock.settimeout(0.5) 
         
-        self.error_pub = rospy.Publisher('/control_errors', Quaternion, queue_size=10)
+        self.camera_data_pub = rospy.Publisher('/camera_data', Float32MultiArray, queue_size=10)
         
         rospy.loginfo(f"✅ Protobuf Receiver Listening on port {self.port}")
         print(f"--- Manual Debug: Listening on port {self.port} ---")
@@ -54,27 +55,31 @@ class ReceiverNode:
                 frame = detection_pb2.DetectionFrame()
                 frame.ParseFromString(data)
                 
-                error_msg = Quaternion()
+                camera_msg = Float32MultiArray()
                 
                 if len(frame.objects) > 0:
                     obj = frame.objects[0] # Take first detected object
                     
                     # Calculate error
-                    err_x = obj.x_pos - self.center_x
-                    err_y = obj.y_pos - self.center_y
+                    '''
+                    float dist_meters = 3; 
+                    float width_cm = 4;
+                    float length_cm = 5;
+                    float angle = 6;
+                    '''
+                    camera_data = [obj.x_pos, obj.y_pos, obj.dist_meters, obj.width_cm, obj.length_cm, obj.angle]
                     
-                    error_msg.x = err_x
-                    error_msg.y = err_y
-                    error_msg.z = obj.dist_meters
-                    error_msg.w = 1.0 # Detection flag
+                    camera_msg.data = camera_data
+
                     
-                    rospy.loginfo(f"🎯 Object: dist={obj.dist_meters:.2f}m, err_x={err_x:.1f}")
+                    # rospy.loginfo(f"🎯 Object: dist={obj.dist_meters:.2f}m, err_x={err_x:.1f}")
                     print(f"   -> Detection: X:{obj.x_pos:.1f}, Dist:{obj.dist_meters:.2f}m")
                 else:
-                    error_msg.w = 0.0 # No objects in frame
+                    camera_msg[0] = 0.0
+                    # camera_msg.w = 0.0 # No objects in frame
                     print("   -> Empty frame received (0 objects)")
                 
-                self.error_pub.publish(error_msg)
+                self.camera_data_pub.publish(camera_msg)
                     
             except socket.timeout:
                 # This is normal, happens every 0.5s if no data arrives

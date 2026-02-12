@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\x0f\x64\x65tection.proto\"t\n\x0bTrashObject\x12\r\n\x05x_pos\x18\x01 \x01(\x02\x12\r\n\x05y_pos\x18\x02 \x01(\x02\x12\x13\n\x0b\x64ist_meters\x18\x03 \x01(\x02\x12\x10\n\x08width_cm\x18\x04 \x01(\x02\x12\x11\n\tlenght_cm\x18\x05 \x01(\x02\x12\r\n\x05\x61ngle\x18\x06 \x01(\x02\"/\n\x0e\x44\x65tectionFrame\x12\x1d\n\x07objects\x18\x01 \x03(\x0b\x32\x0c.TrashObjectb\x06proto3')
+  serialized_pb=_b('\n\x0f\x64\x65tection.proto\"t\n\x0bTrashObject\x12\r\n\x05x_pos\x18\x01 \x01(\x02\x12\r\n\x05y_pos\x18\x02 \x01(\x02\x12\x13\n\x0b\x64ist_meters\x18\x03 \x01(\x02\x12\x10\n\x08width_cm\x18\x04 \x01(\x02\x12\x11\n\tlength_cm\x18\x05 \x01(\x02\x12\r\n\x05\x61ngle\x18\x06 \x01(\x02\"/\n\x0e\x44\x65tectionFrame\x12\x1d\n\x07objects\x18\x01 \x03(\x0b\x32\x0c.TrashObjectb\x06proto3')
 )
 
 
@@ -61,7 +61,7 @@ _TRASHOBJECT = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='lenght_cm', full_name='TrashObject.lenght_cm', index=4,
+      name='length_cm', full_name='TrashObject.length_cm', index=4,
       number=5, type=2, cpp_type=6, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,

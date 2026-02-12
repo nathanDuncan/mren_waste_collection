@@ -3,8 +3,9 @@
 import rospy
 from open_manipulator_msgs.msg import KinematicsPose, JointPosition
 from open_manipulator_msgs.srv import SetKinematicsPose, SetJointPosition
-from std_msgs.msg import Int32MultiArray
+from std_msgs.msg import Int32MultiArray, Float32MultiArray
 from sensor_msgs.msg import JointState
+from geometry_msgs.msg import Quaternion
 import copy
 
 # JointState is needed as that is the type of message that is received from the arm's sensors
@@ -44,9 +45,9 @@ class Controller:
             "/gripper/kinematics_pose", KinematicsPose, self._pose_callback
         )
         rospy.Subscriber("/joint_states", JointState, self._joint_state_callback)
-        # rospy.Subscriber(
-        #     "camera_data", Int32MultiArray, callback=self._camera_subscriber_callback
-        # )
+        rospy.Subscriber(
+            "/camera_data", Float32MultiArray, callback=self._camera_subscriber_callback
+        )
 
         # Wait for services
         rospy.wait_for_service("/goal_task_space_path")
@@ -84,15 +85,15 @@ class Controller:
         # This slices the position message to only give values for joint1, joint2, joint3, joint4
         self.current_joint_state = msg.position[2:]
 
-    # def _camera_subscriber_callback(self, msg: list[int]):
-    #     """
-    #     Docstring for _camera_subscriber_callback
+    def _camera_subscriber_callback(self, msg):
+        """
+        Docstring for _camera_subscriber_callback
 
-    #     :param msg: Object containing data from the camera subscriber, ordered by [centroid_x_position, centroid_y_position].
-    #     :type msg: list[int]
-    #     """
-    #     self.cx = msg.data[0]
-    #     self.cy = msg.data[1]
+        :param msg: Object containing data from the camera subscriber, ordered by [centroid_x_position, centroid_y_position].
+        :type msg: list[int]
+        """
+        self.cx = msg.data[0]
+        self.cy = msg.data[1]
 
     # Fundamental movement functions
     def move_joint_space(self, joint_angles, path_time: float):
@@ -344,10 +345,11 @@ if __name__ == "__main__":
             while True:
                 
                 y_threshold_percentage = 0.075
-                y_threshold_tolerance = 0.075
+                y_threshold_percentage = 0.50
+                y_threshold_tolerance = 0.20
 
                 x_threshold_percentage = 0.50
-                x_threshold_tolerance = 0.075
+                x_threshold_tolerance = 0.20
                 lower_y_threshold = (
                     y_threshold_percentage * H - y_threshold_tolerance * H
                 )
@@ -362,10 +364,12 @@ if __name__ == "__main__":
                 )
 
                 # Mock camera data correct
-                switch_flag = input("Type 's' to switch to stable short")
-                if switch_flag == "s":
-                    controller.cx = x_threshold_percentage * W
-                    controller.cy = y_threshold_percentage * H
+                # switch_flag = input("Type 's' to switch to stable short")
+                # if switch_flag == "s":
+                #     controller.cx = x_threshold_percentage * W
+                #     controller.cy = y_threshold_percentage * H
+                # print("CX and CY: ")
+                # print(controller.cx, controller.cy)
 
                 # Check if object is at the bottom of the screen
                 if (
