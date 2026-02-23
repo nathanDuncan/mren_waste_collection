@@ -1,5 +1,5 @@
 <launch>
-    <arg name="debug" default="false"/>
+    <arg name="debug" default="true"/>
 
     <!-- Receiver Node (Receives data from Host running vision) -->
     <node pkg="mren_waste_collector" type="receiver.py" name="receiver_node" output="screen">
@@ -9,9 +9,9 @@
     </node>
 
     <!-- Launch unitree_legged_real -->
-    <include file="$(find unitree_legged_real)/launch/real.launch" unless="$(arg debug)">
+    <!-- <include file="$(find unitree_legged_real)/launch/real.launch" unless="$(arg debug)">
         <arg name="ctrl_level" value="highlevel"/>
-    </include>
+    </include> -->
 
     <!-- Launch mren_waste_collector nodes -->
     <!-- <node pkg="mren_waste_collector" type="simple_servoing_node" name="simple_servoing_node" output="screen"/> -->

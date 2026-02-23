@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import rospy
+import math
 import smach
 import smach_ros
 from sensor_msgs.msg import JointState
@@ -23,6 +24,7 @@ class StateMachineData:
         
         # Joint state tracking
         self.joint2_pos = JOINT_SET_1[1] # Default to home
+        self.joint4_pos = JOINT_SET_1[3]
         rospy.Subscriber('/joint_states', JointState, self.joint_state_callback)
 
         if self.debug:
@@ -34,6 +36,9 @@ class StateMachineData:
             if 'joint2' in msg.name:
                 idx = msg.name.index('joint2')
                 self.joint2_pos = msg.position[idx]
+            if 'joint4' in msg.name:
+                idx = msg.name.index('joint4')
+                self.joint4_pos = msg.position[idx]
         except (ValueError, IndexError):
             pass
 
@@ -112,11 +117,12 @@ class ApproachCoarse(smach.State):
             # Positive error_y (obj is above center) -> robot should tilt arm up?
             # Normally joint2 increases moves arm forward/down depending on mounting.
             # Let's use a small gain
-            kp_j2 = 0.0005 
-            new_j2 = self.data.joint2_pos + (error_y * kp_j2)
+            kp_j4 = 0.0005 
+            new_j4 = self.data.joint4_pos + (error_y * kp_j4)
+            new_j4 = max(min(new_j4, 2.04-0.1), -1.79+0.1)
             
             # Constraints: Keep it within reasonable bounds or just use what service allows
-            move_manipulator([0.0, new_j2, 0.3, 0.7], path_time=0.1)
+            move_manipulator([0.0, -1.0, 0.3, new_j4], path_time=0.1)
 
             # --- Base Control ---
             twist = Twist()
@@ -143,7 +149,7 @@ class ApproachCoarse(smach.State):
             if not self.data.debug:
                 self.cmd_vel_pub.publish(twist)
             else:
-                rospy.loginfo(f"[DEBUG] APPROACH_COARSE: \nPos(x={x_pos}, y={y_pos}, dist={dist_meters:.2f}) \nTwist(lin={twist.linear.x:.2f}, ang={twist.angular.z:.2f}) \nJoint2_cmd={new_j2:.3f}")
+                rospy.loginfo(f"[DEBUG] APPROACH_COARSE: \nPos(x={x_pos}, y={y_pos}, dist={dist_meters:.2f}) \nTwist(lin={twist.linear.x:.2f}, ang={twist.angular.z:.2f}) \nJoint4_cmd={new_j4:.3f}")
             rate.sleep()
             
         return 'preempted'

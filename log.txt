@@ -1,0 +1,595 @@
+ubuntu@ubuntu:~/go1_ws/src/mren_waste_collection$ roslaunch mren_waste_collector main.launch 
+... logging to /home/ubuntu/.ros/log/583dcd58-10e6-11f1-9222-3f6a2edb3555/roslaunch-ubuntu-5761.log
+Checking log directory for disk usage. This may take a while.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+
+started roslaunch server http://ubuntu:33317/
+
+SUMMARY
+========
+
+PARAMETERS
+ * /open_manipulator_controller/control_period: 0.01
+ * /open_manipulator_controller/using_platform: True
+ * /receiver_node/center_x: 320.0
+ * /receiver_node/center_y: 240.0
+ * /receiver_node/port: 25000
+ * /rosdistro: noetic
+ * /rosversion: 1.17.4
+ * /state_machine/debug_mode: True
+
+NODES
+  /
+    open_manipulator_controller (open_manipulator_controller/open_manipulator_controller)
+    receiver_node (mren_waste_collector/receiver.py)
+    state_machine (mren_waste_collector/state_machine.py)
+
+auto-starting new master
+process[master]: started with pid [5769]
+ROS_MASTER_URI=http://localhost:11311
+
+setting /run_id to 583dcd58-10e6-11f1-9222-3f6a2edb3555
+process[rosout-1]: started with pid [5779]
+started core service [/rosout]
+process[receiver_node-2]: started with pid [5786]
+process[open_manipulator_controller-3]: started with pid [5787]
+process[state_machine-4]: started with pid [5788]
+port_name and baud_rate are set to /dev/ttyUSB0, 1000000 
+Joint Dynamixel ID : 11, Model Name : XM430-W350
+Joint Dynamixel ID : 12, Model Name : XM430-W350
+Joint Dynamixel ID : 13, Model Name : XM430-W350
+Joint Dynamixel ID : 14, Model Name : XM430-W350
+Gripper Dynamixel ID : 15, Model Name :XM430-W350
+[INFO] Succeeded to init /open_manipulator_controller
+the rosdep view is empty: call 'sudo rosdep init' and 'rosdep update'
+[DEBUG] [1771871701.302837]: init_node, name[/receiver_node], pid[5786]
+[DEBUG] [1771871701.308892]: binding to 0.0.0.0 0
+[DEBUG] [1771871701.317044]: bound to 0.0.0.0 37515
+[DEBUG] [1771871701.324449]: ... service URL is rosrpc://ubuntu:37515
+[DEBUG] [1771871701.331539]: [/receiver_node/get_loggers]: new Service instance
+[DEBUG] [1771871701.352126]: ... service URL is rosrpc://ubuntu:37515
+[DEBUG] [1771871701.361411]: [/receiver_node/set_logger_level]: new Service instance
+[INFO] [1771871701.405359]: ✅ Protobuf Receiver Listening on port 25000
+--- Manual Debug: Listening on port 25000 ---
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+[INFO] [1771871701.489265]: 🛠 DEBUG MODE ENABLED: Base and posture commands will be logged but not published.
+[INFO] [1771871701.553129]: State machine starting in initial state 'IDLE' with userdata: 
+	[]
+[INFO] [1771871701.572590]: Entering State: IDLE
+[INFO] [1771871701.625538]: [DEBUG] IDLE: Would publish zero cmd_vel
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:363.4, Dist:1.29m
+[INFO] [1771871714.342909]: State machine transitioning 'IDLE':'detected'-->'APPROACH_COARSE'
+[INFO] [1771871714.353437]: Entering State: APPROACH (COARSE)
+[INFO] [1771871714.405147]: [DEBUG] APPROACH_COARSE: 
+Pos(x=363.4482116699219, y=214.022216796875, dist=1.29) 
+Twist(lin=0.20, ang=-0.13) 
+Joint4_cmd=0.723
+[INFO] [1771871714.488252]: [DEBUG] APPROACH_COARSE: 
+Pos(x=363.4482116699219, y=214.022216796875, dist=1.29) 
+Twist(lin=0.20, ang=-0.13) 
+Joint4_cmd=0.725
+[INFO] [1771871714.587326]: [DEBUG] APPROACH_COARSE: 
+Pos(x=363.4482116699219, y=214.022216796875, dist=1.29) 
+Twist(lin=0.20, ang=-0.13) 
+Joint4_cmd=0.728
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:363.4, Dist:1.28m
+[INFO] [1771871714.698725]: [DEBUG] APPROACH_COARSE: 
+Pos(x=363.4482116699219, y=214.022216796875, dist=1.28) 
+Twist(lin=0.20, ang=-0.13) 
+Joint4_cmd=0.739
+[INFO] [1771871714.795243]: [DEBUG] APPROACH_COARSE: 
+Pos(x=363.4482116699219, y=214.022216796875, dist=1.28) 
+Twist(lin=0.20, ang=-0.13) 
+Joint4_cmd=0.743
+[INFO] [1771871714.887726]: [DEBUG] APPROACH_COARSE: 
+Pos(x=363.4482116699219, y=214.022216796875, dist=1.28) 
+Twist(lin=0.20, ang=-0.13) 
+Joint4_cmd=0.748
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:363.5, Dist:1.28m
+[INFO] [1771871714.986338]: [DEBUG] APPROACH_COARSE: 
+Pos(x=363.4730529785156, y=213.36871337890625, dist=1.28) 
+Twist(lin=0.20, ang=-0.13) 
+Joint4_cmd=0.756
+[INFO] [1771871715.095840]: [DEBUG] APPROACH_COARSE: 
+Pos(x=363.4730529785156, y=213.36871337890625, dist=1.28) 
+Twist(lin=0.20, ang=-0.13) 
+Joint4_cmd=0.762
+[INFO] [1771871715.187581]: [DEBUG] APPROACH_COARSE: 
+Pos(x=363.4730529785156, y=213.36871337890625, dist=1.28) 
+Twist(lin=0.20, ang=-0.13) 
+Joint4_cmd=0.770
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:361.3, Dist:1.29m
+[INFO] [1771871715.298769]: [DEBUG] APPROACH_COARSE: 
+Pos(x=361.30865478515625, y=201.16354370117188, dist=1.29) 
+Twist(lin=0.20, ang=-0.12) 
+Joint4_cmd=0.783
+[INFO] [1771871715.397016]: [DEBUG] APPROACH_COARSE: 
+Pos(x=361.30865478515625, y=201.16354370117188, dist=1.29) 
+Twist(lin=0.20, ang=-0.12) 
+Joint4_cmd=0.788
+[INFO] [1771871715.495164]: [DEBUG] APPROACH_COARSE: 
+Pos(x=361.30865478515625, y=201.16354370117188, dist=1.29) 
+Twist(lin=0.20, ang=-0.12) 
+Joint4_cmd=0.797
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:362.8, Dist:1.28m
+[INFO] [1771871715.590449]: [DEBUG] APPROACH_COARSE: 
+Pos(x=362.8150634765625, y=191.65621948242188, dist=1.28) 
+Twist(lin=0.20, ang=-0.13) 
+Joint4_cmd=0.813
+[INFO] [1771871715.695263]: [DEBUG] APPROACH_COARSE: 
+Pos(x=362.8150634765625, y=191.65621948242188, dist=1.28) 
+Twist(lin=0.20, ang=-0.13) 
+Joint4_cmd=0.819
+[INFO] [1771871715.795306]: [DEBUG] APPROACH_COARSE: 
+Pos(x=362.8150634765625, y=191.65621948242188, dist=1.28) 
+Twist(lin=0.20, ang=-0.13) 
+Joint4_cmd=0.836
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:362.6, Dist:1.28m
+[INFO] [1771871715.889026]: [DEBUG] APPROACH_COARSE: 
+Pos(x=362.5785827636719, y=176.52236938476562, dist=1.28) 
+Twist(lin=0.20, ang=-0.13) 
+Joint4_cmd=0.851
+[INFO] [1771871715.999479]: [DEBUG] APPROACH_COARSE: 
+Pos(x=362.5785827636719, y=176.52236938476562, dist=1.28) 
+Twist(lin=0.20, ang=-0.13) 
+Joint4_cmd=0.866
+[INFO] [1771871716.099394]: [DEBUG] APPROACH_COARSE: 
+Pos(x=362.5785827636719, y=176.52236938476562, dist=1.28) 
+Twist(lin=0.20, ang=-0.13) 
+Joint4_cmd=0.882
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:364.3, Dist:1.28m
+[INFO] [1771871716.195544]: [DEBUG] APPROACH_COARSE: 
+Pos(x=364.26605224609375, y=157.58334350585938, dist=1.28) 
+Twist(lin=0.20, ang=-0.13) 
+Joint4_cmd=0.906
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 64 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:365.3, Dist:1.24m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:365.3, Dist:1.24m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:365.4, Dist:1.24m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:365.6, Dist:1.24m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:365.5, Dist:1.24m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:365.8, Dist:1.25m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:365.2, Dist:1.24m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:365.0, Dist:1.24m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:364.9, Dist:1.25m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:365.3, Dist:1.24m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:365.5, Dist:1.24m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:363.9, Dist:1.24m
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:343.6, Dist:0.78m
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 64 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.9, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.4, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.4, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.4, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.4, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.4, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.3, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.3, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.4, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 64 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.3, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.7, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.4, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.2, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.4, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.3, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.3, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.3, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.3, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.7, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.7, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.7, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.7, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.4, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.7, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.7, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 64 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.7, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.7, Dist:0.80m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.7, Dist:0.80m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.7, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.7, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.8, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.9, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.4, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.7, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.4, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.4, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.4, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.7, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 64 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.6, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.4, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.5, Dist:0.81m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:390.7, Dist:0.81m
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:349.9, Dist:0.89m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:327.9, Dist:0.85m
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:341.3, Dist:0.87m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:344.5, Dist:0.88m
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:342.4, Dist:0.87m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:334.5, Dist:0.87m
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:352.2, Dist:0.88m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:334.3, Dist:0.87m
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:341.3, Dist:0.88m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:339.3, Dist:0.87m
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:345.3, Dist:0.88m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:344.1, Dist:0.88m
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 0 bytes from ('192.168.12.188', 58909)
+   -> Empty frame received (0 objects)
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:312.9, Dist:0.59m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:312.0, Dist:0.58m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:312.0, Dist:0.59m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:312.4, Dist:0.58m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:312.7, Dist:0.58m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:312.9, Dist:0.58m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:312.9, Dist:0.58m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:313.0, Dist:0.58m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:313.1, Dist:0.58m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:312.9, Dist:0.58m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:313.0, Dist:0.58m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:313.0, Dist:0.58m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:313.1, Dist:0.58m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:313.1, Dist:0.58m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:313.1, Dist:0.58m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:313.0, Dist:0.58m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:313.0, Dist:0.59m
+📩 Received 32 bytes from ('192.168.12.188', 58909)
+   -> Detection: X:312.9, Dist:0.58m
+^C[state_machine-4] killing on exit
+[open_manipulator_controller-3] killing on exit
+[receiver_node-2] killing on exit
+^C^C[ERROR] [1771871769.064578]: Manipulator service call failed: node shutdown interrupted service call
+[INFO] [1771871769.119298]: [DEBUG] APPROACH_COARSE: 
+Pos(x=364.26605224609375, y=157.58334350585938, dist=1.28) 
+Twist(lin=0.20, ang=-0.13) 
+Joint4_cmd=0.916
+[INFO] [1771871769.167687]: State machine terminating 'APPROACH_COARSE':'preempted':'preempted'
+[INFO] [1771871769.206118]: State Machine Finished with outcome: preempted
+[open_manipulator_controller-3] escalating to SIGTERM
+[rosout-1] killing on exit
+[master] killing on exit
+shutting down processing monitor...
+... shutting down processing monitor complete
+done
