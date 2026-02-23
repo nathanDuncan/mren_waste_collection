@@ -97,8 +97,8 @@ class ApproachCoarse(smach.State):
             error_x = 320 - x_pos
             twist.angular.z = error_x * 0.002 # Gain
             
-            # Target Y > 400
-            if y_pos > 400 and abs(error_x) < 20:
+            # Target Y > 420
+            if y_pos > 420 and abs(error_x) < 40:
                 self.cmd_vel_pub.publish(Twist()) # Stop before transitioning
                 return 'centered'
             
@@ -108,7 +108,7 @@ class ApproachCoarse(smach.State):
             if not self.data.debug:
                 self.cmd_vel_pub.publish(twist)
             else:
-                rospy.loginfo(f"[DEBUG] APPROACH_COARSE: Twist(lin={twist.linear.x:.2f}, ang={twist.angular.z:.2f})")
+                rospy.loginfo(f"[DEBUG] APPROACH_COARSE: \nPos(x={x_pos}, y={y_pos}) \nTwist(lin={twist.linear.x:.2f}, ang={twist.angular.z:.2f})")
             rate.sleep()
             
         return 'preempted'
