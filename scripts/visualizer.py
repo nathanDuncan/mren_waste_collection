@@ -47,7 +47,7 @@ class VisualizerNode:
                 x_pos = self.current_data[0]
                 y_pos = self.current_data[1]
                 length_cm = self.current_data[4]
-                angle = self.current_data[5] # Assuming radians
+                angle = self.current_data[5] # degrees
                 
                 # Origin (x_pos, y_pos) - assuming these are in pixel coordinates
                 start_point = (int(x_pos), int(y_pos))
@@ -57,8 +57,8 @@ class VisualizerNode:
                 # x_end = x_pos + length * sin(angle)
                 # y_end = y_pos - length * cos(angle)
                 length_px = length_cm * self.scale
-                end_x = x_pos + length_px * math.sin(angle)
-                end_y = y_pos - length_px * math.cos(angle)
+                end_x = x_pos + length_px * math.sin(math.radians(angle))
+                end_y = y_pos - length_px * math.cos(math.radians(angle))
                 end_point = (int(end_x), int(end_y))
                 
                 # Draw the line (green)
@@ -70,7 +70,7 @@ class VisualizerNode:
                 # Display text info
                 cv2.putText(img, f"Dist: {self.current_data[2]:.2f}m", (10, 30), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-                cv2.putText(img, f"Angle: {math.degrees(angle):.1f}deg", (10, 60), 
+                cv2.putText(img, f"Angle: {angle:.1f}deg", (10, 60), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
             # Show the image
