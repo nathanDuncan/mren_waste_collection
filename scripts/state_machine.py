@@ -99,59 +99,69 @@ class ApproachCoarse(smach.State):
         self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
 
     def execute(self, userdata):
-        rospy.loginfo("Entering State: APPROACH (COARSE)")
-        rate = rospy.Rate(10)
+        rospy.loginfo("Entering State: APPROACH (COARSE) - Discrete Mode")
         
         while not rospy.is_shutdown():
+            # --- PHASE 1: STABILIZE & OBSERVE ---
+            # Stop any movement and wait for motion blur to settle
+            stop_msg = Twist()
+            if not self.data.debug:
+                self.cmd_vel_pub.publish(stop_msg)
+            
+            rospy.loginfo("PHASE: STABILIZE & OBSERVE (Wait for clear image)")
+            rospy.sleep(1.0) # Wait for camera to stabilize
+            
+            # Verify we still have the object
             if self.data.camera_data is None:
+                rospy.logwarn("Object lost during observation.")
                 return 'lost'
             
+            # Collect stable data (maybe check a few samples?)
             x_pos = self.data.camera_data[0]
             y_pos = self.data.camera_data[1]
             dist_meters = self.data.camera_data[2]
             
-            # --- Manipulator Control (Joint 2 Tracking) ---
-            # Center Y = 240
-            error_y = 240 - y_pos
-            # P-controller for joint2
-            # Positive error_y (obj is above center) -> robot should tilt arm up?
-            # Normally joint2 increases moves arm forward/down depending on mounting.
-            # Let's use a small gain
-            kp_j4 = 0.0005 
-            new_j4 = self.data.joint4_pos + (error_y * kp_j4)
-            new_j4 = max(min(new_j4, 2.04-0.1), -1.79+0.1)
-            
-            # Constraints: Keep it within reasonable bounds or just use what service allows
-            move_manipulator([0.0, -1.0, 0.3, new_j4], path_time=0.1)
-
-            # --- Base Control ---
-            twist = Twist()
-            
+            # --- PHASE 2: CALCULATE ---
             # 1. Yaw centering (X error)
             error_x = 320 - x_pos
-            twist.angular.z = error_x * 0.003
-            
             # 2. Distance tracking (Linear velocity)
             # Target dist = 0.4
             kp_dist = 0.5
             target_vel = kp_dist * (dist_meters - 0.4)
             
-            # Clip velocity ±0.2
+            # 3. Manipulator Control (Joint 4 Tracking)
+            error_y = 240 - y_pos
+            kp_j4 = 0.0005 
+            new_j4 = self.data.joint4_pos + (error_y * kp_j4)
+            new_j4 = max(min(new_j4, 2.04-0.1), -1.79+0.1)
+
+            # Check for completion
+            if abs(dist_meters - 0.4) < 0.05 and abs(error_x) < 40 and abs(error_y) < 20:
+                rospy.loginfo("Target reached and centered.")
+                return 'centered'
+
+            # --- PHASE 3: EXECUTE (Short Burst) ---
+            twist = Twist()
+            twist.angular.z = error_x * 0.003
             twist.linear.x = max(min(target_vel, 0.2), -0.2)
             
-            # Transition Condition
-            # Target reached if dist is close to 0.4 and object is centered
-            if abs(dist_meters - 0.4) < 0.05 and abs(error_x) < 40 and abs(error_y) < 20:
-                if not self.data.debug:
-                    self.cmd_vel_pub.publish(Twist())
-                return 'centered'
+            rospy.loginfo(f"PHASE: MOVE - x_err={error_x}, dist_err={dist_meters-0.4:.2f}, j4={new_j4:.3f}")
             
             if not self.data.debug:
-                self.cmd_vel_pub.publish(twist)
+                # Move Arm
+                move_manipulator([0.0, -1.0, 0.3, new_j4], path_time=0.5)
+                # Move Base for 0.5s
+                start_time = rospy.Time.now()
+                move_duration = rospy.Duration(0.5)
+                rate = rospy.Rate(10)
+                while rospy.Time.now() - start_time < move_duration:
+                    self.cmd_vel_pub.publish(twist)
+                    rate.sleep()
+                self.cmd_vel_pub.publish(stop_msg)
             else:
-                rospy.loginfo(f"[DEBUG] APPROACH_COARSE: \nPos(x={x_pos}, y={y_pos}, dist={dist_meters:.2f}) \nTwist(lin={twist.linear.x:.2f}, ang={twist.angular.z:.2f}) \nJoint4_cmd={new_j4:.3f}")
-            rate.sleep()
-            
+                rospy.loginfo(f"[DEBUG] Would move for 0.5s: lin={twist.linear.x:.2f}, ang={twist.angular.z:.2f}")
+                rospy.sleep(0.5)
+
         return 'preempted'
 
 class ApproachFine(smach.State):
@@ -161,40 +171,52 @@ class ApproachFine(smach.State):
         self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
 
     def execute(self, userdata):
-        rospy.loginfo("Entering State: APPROACH (FINE)")
+        rospy.loginfo("Entering State: APPROACH (FINE) - Discrete Mode")
         
-        # Move arm to Short View
+        # Move arm to Short View first
         move_manipulator(JOINT_SET_2)
         
-        rate = rospy.Rate(10)
         while not rospy.is_shutdown():
+            # --- PHASE 1: STABILIZE & OBSERVE ---
+            stop_msg = Twist()
+            if not self.data.debug:
+                self.cmd_vel_pub.publish(stop_msg)
+            
+            rospy.loginfo("PHASE: STABILIZE & OBSERVE")
+            rospy.sleep(1.0)
+            
             if self.data.camera_data is None:
                 return 'lost'
             
             x_pos = self.data.camera_data[0]
             y_pos = self.data.camera_data[1]
             
-            # Visual Servoing to center (320, 240)
-            twist = Twist()
-            
+            # --- PHASE 2: CALCULATE ---
             error_x = 320 - x_pos
-            error_y = 240 - y_pos # Robot might need to move forward/backward to adjust y in frame
+            error_y = 240 - y_pos 
             
+            if abs(error_x) < 10 and abs(error_y) < 10:
+                rospy.loginfo("Centering complete.")
+                return 'reached'
+            
+            # --- PHASE 3: EXECUTE (Short Burst) ---
+            twist = Twist()
             twist.angular.z = error_x * 0.001
             twist.linear.x = error_y * 0.001
             
-            if abs(error_x) < 10 and abs(error_y) < 10:
-                if not self.data.debug:
-                    self.cmd_vel_pub.publish(Twist())
-                else:
-                    rospy.loginfo("[DEBUG] APPROACH_FINE: Reached target, would stop.")
-                return 'reached'
+            rospy.loginfo(f"PHASE: MOVE - error_x={error_x}, error_y={error_y}")
             
             if not self.data.debug:
-                self.cmd_vel_pub.publish(twist)
+                start_time = rospy.Time.now()
+                move_duration = rospy.Duration(0.5)
+                rate = rospy.Rate(10)
+                while rospy.Time.now() - start_time < move_duration:
+                    self.cmd_vel_pub.publish(twist)
+                    rate.sleep()
+                self.cmd_vel_pub.publish(stop_msg)
             else:
-                rospy.loginfo(f"[DEBUG] APPROACH_FINE: Twist(lin={twist.linear.x:.3f}, ang={twist.angular.z:.3f})")
-            rate.sleep()
+                rospy.loginfo(f"[DEBUG] Would move for 0.5s: lin={twist.linear.x:.3f}, ang={twist.angular.z:.3f}")
+                rospy.sleep(0.5)
             
         return 'preempted'
 
