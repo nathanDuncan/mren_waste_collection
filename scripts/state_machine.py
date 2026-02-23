@@ -3,6 +3,7 @@
 import rospy
 import smach
 import smach_ros
+from sensor_msgs.msg import JointState
 from std_msgs.msg import Float32MultiArray
 from geometry_msgs.msg import Twist
 from unitree_legged_msgs.msg import HighCmd
@@ -19,11 +20,25 @@ class StateMachineData:
         self.lost_count = 0
         self.max_lost = 5
         self.debug = rospy.get_param('~debug_mode', False)
+        
+        # Joint state tracking
+        self.joint2_pos = JOINT_SET_1[1] # Default to home
+        rospy.Subscriber('/joint_states', JointState, self.joint_state_callback)
+
         if self.debug:
             rospy.loginfo("🛠 DEBUG MODE ENABLED: Base and posture commands will be logged but not published.")
 
+    def joint_state_callback(self, msg):
+        try:
+            # OpenManipulator joint names are usually joint1, joint2...
+            if 'joint2' in msg.name:
+                idx = msg.name.index('joint2')
+                self.joint2_pos = msg.position[idx]
+        except (ValueError, IndexError):
+            pass
+
     def update_camera(self, msg):
-        if len(msg.data) >= 6:
+        if len(msg.data) >= 6 and msg.data[0] != -1.0:
             self.camera_data = msg.data
             self.lost_count = 0
         else:
@@ -88,27 +103,47 @@ class ApproachCoarse(smach.State):
             
             x_pos = self.data.camera_data[0]
             y_pos = self.data.camera_data[1]
+            dist_meters = self.data.camera_data[2]
             
-            # Visual Servoing
+            # --- Manipulator Control (Joint 2 Tracking) ---
+            # Center Y = 240
+            error_y = 240 - y_pos
+            # P-controller for joint2
+            # Positive error_y (obj is above center) -> robot should tilt arm up?
+            # Normally joint2 increases moves arm forward/down depending on mounting.
+            # Let's use a small gain
+            kp_j2 = 0.0005 
+            new_j2 = self.data.joint2_pos + (error_y * kp_j2)
+            
+            # Constraints: Keep it within reasonable bounds or just use what service allows
+            move_manipulator([0.0, new_j2, 0.3, 0.7], path_time=0.1)
+
+            # --- Base Control ---
             twist = Twist()
             
-            # Simple P-control
-            # Center X = 320
+            # 1. Yaw centering (X error)
             error_x = 320 - x_pos
-            twist.angular.z = error_x * 0.002 # Gain
+            twist.angular.z = error_x * 0.003
             
-            # Target Y > 420
-            if y_pos > 420 and abs(error_x) < 40:
-                self.cmd_vel_pub.publish(Twist()) # Stop before transitioning
+            # 2. Distance tracking (Linear velocity)
+            # Target dist = 0.4
+            kp_dist = 0.5
+            target_vel = kp_dist * (dist_meters - 0.4)
+            
+            # Clip velocity ±0.2
+            twist.linear.x = max(min(target_vel, 0.2), -0.2)
+            
+            # Transition Condition
+            # Target reached if dist is close to 0.4 and object is centered
+            if abs(dist_meters - 0.4) < 0.05 and abs(error_x) < 40 and abs(error_y) < 20:
+                if not self.data.debug:
+                    self.cmd_vel_pub.publish(Twist())
                 return 'centered'
-            
-            # Constant forward speed if not centered enough
-            twist.linear.x = 0.1
             
             if not self.data.debug:
                 self.cmd_vel_pub.publish(twist)
             else:
-                rospy.loginfo(f"[DEBUG] APPROACH_COARSE: \nPos(x={x_pos}, y={y_pos}) \nTwist(lin={twist.linear.x:.2f}, ang={twist.angular.z:.2f})")
+                rospy.loginfo(f"[DEBUG] APPROACH_COARSE: \nPos(x={x_pos}, y={y_pos}, dist={dist_meters:.2f}) \nTwist(lin={twist.linear.x:.2f}, ang={twist.angular.z:.2f}) \nJoint2_cmd={new_j2:.3f}")
             rate.sleep()
             
         return 'preempted'

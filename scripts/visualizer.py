@@ -17,6 +17,10 @@ class VisualizerNode:
         self.center_y = rospy.get_param('~center_y', self.height / 2.0)
         self.scale = rospy.get_param('~length_scale', 5.0) # pixels per cm
         
+        # Object tracking state
+        self.lost_count = 0
+        self.max_lost = 20
+        
         # Subscriber for camera data
         self.sub = rospy.Subscriber('/camera_data', Float32MultiArray, self.callback)
         
@@ -27,11 +31,14 @@ class VisualizerNode:
 
     def callback(self, msg):
         # Expected format: [x_pos, y_pos, dist_meters, width_cm, length_cm, angle]
-        if len(msg.data) >= 6:
+        if len(msg.data) >= 6 and msg.data[0] != -1.0:
             self.current_data = msg.data
+            self.lost_count = 0
+        else:
+            self.lost_count += 1
 
     def run(self):
-        rate = rospy.Rate(30)
+        rate = rospy.Rate(20)
         while not rospy.is_shutdown():
             # Create a black background
             img = np.zeros((self.height, self.width, 3), dtype=np.uint8)
@@ -42,8 +49,8 @@ class VisualizerNode:
             # Draw center dot (blue)
             cv2.circle(img, (int(self.center_x), int(self.center_y)), 5, (255, 0, 0), -1)
             
-            # Draw object if data is available
-            if self.current_data:
+            # Draw object if data is available and not stale
+            if self.current_data and self.lost_count < self.max_lost:
                 x_pos = self.current_data[0]
                 y_pos = self.current_data[1]
                 length_cm = self.current_data[4]

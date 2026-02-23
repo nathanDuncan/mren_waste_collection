@@ -75,7 +75,7 @@ class ReceiverNode:
                     # rospy.loginfo(f"🎯 Object: dist={obj.dist_meters:.2f}m, err_x={err_x:.1f}")
                     print(f"   -> Detection: X:{obj.x_pos:.1f}, Dist:{obj.dist_meters:.2f}m")
                 else:
-                    camera_msg[0] = 0.0
+                    camera_msg[0] = -1.0
                     # camera_msg.w = 0.0 # No objects in frame
                     print("   -> Empty frame received (0 objects)")
                 
