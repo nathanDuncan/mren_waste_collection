@@ -20,7 +20,7 @@
     <!-- <include file="$(find open_manipulator_controller)/launch/open_manipulator_controller.launch"/> -->
 
     <!-- Waste Collector State Machine -->
-    <!-- <node pkg="mren_waste_collector" type="state_machine.py" name="state_machine" output="screen">
+    <node pkg="mren_waste_collector" type="state_machine.py" name="state_machine" output="screen">
         <param name="debug_mode" value="$(arg debug)"/>
-    </node> -->
+    </node>
 </launch>

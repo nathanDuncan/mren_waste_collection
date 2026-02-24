@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import rospy
-from geometry_msgs.msg import Twist
+from unitree_legged_msgs.msg import HighCmd
 import sys, select, tty, termios
 
 # Define key mappings
@@ -48,15 +48,23 @@ def get_key(settings):
     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
     return key
 
+def create_high_cmd(linear_x=0.0, linear_y=0.0, yaw_speed=0.0, mode=0, gait_type=0):
+    cmd = HighCmd()
+    cmd.head = [0xFE, 0xEF]
+    cmd.levelFlag = 0xee # HIGHLEVEL
+    cmd.mode = mode
+    cmd.gaitType = gait_type
+    cmd.velocity = [linear_x, linear_y]
+    cmd.yawSpeed = yaw_speed
+    return cmd
+
 def main():
     """Main function to run the teleop node."""
     settings = termios.tcgetattr(sys.stdin)
     
     rospy.init_node('go1_teleop_key')
-    pub = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
+    pub = rospy.Publisher('/high_cmd', HighCmd, queue_size=5)
 
-    twist = Twist()
-    
     # Initialize velocities to zero
     target_linear_vel = 0.0
     target_angular_vel = 0.0
@@ -77,7 +85,6 @@ def main():
                 rospy.loginfo(f"Key: '{key}', Vels: Lin={target_linear_vel:.2f}, Str={target_strafe_vel:.2f}, Ang={target_angular_vel:.2f}")
 
             elif key == '':
-                # *********** THE SAFETY FIX ***********
                 # If no key is pressed, stop the robot.
                 target_linear_vel = 0.0
                 target_angular_vel = 0.0
@@ -93,30 +100,33 @@ def main():
                 target_angular_vel = 0.0
                 rospy.logwarn(f"Unmapped key pressed: {key}")
 
-
-            # Populate the Twist message
-            # Note: walk_ros maps linear.x to forward, linear.y to side, angular.z to rotation
-            twist.linear.x = target_linear_vel * speed
-            twist.linear.y = target_strafe_vel * speed
-            twist.linear.z = 0.0
-            twist.angular.x = 0.0
-            twist.angular.y = 0.0
-            twist.angular.z = target_angular_vel * turn
+            # Populate the HighCmd message
+            mode = 2 if (target_linear_vel != 0 or target_strafe_vel != 0 or target_angular_vel != 0) else 1
+            gait = 1 if mode == 2 else 0
             
-            pub.publish(twist)
+            cmd = create_high_cmd(
+                linear_x=target_linear_vel * speed,
+                linear_y=target_strafe_vel * speed,
+                yaw_speed=target_angular_vel * turn,
+                mode=mode,
+                gait_type=gait
+            )
+            
+            pub.publish(cmd)
 
     except Exception as e:
         rospy.logerr(f"An error occurred: {e}")
 
     finally:
         # Stop the robot when quitting
-        twist.linear.x = 0.0
-        twist.linear.y = 0.0
-        twist.angular.z = 0.0
-        pub.publish(twist)
+        stop_cmd = create_high_cmd(mode=1)
+        pub.publish(stop_cmd)
         
         # Restore terminal settings
         termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
+
+if __name__ == "__main__":
+    main()
 
 if __name__ == "__main__":
     main()

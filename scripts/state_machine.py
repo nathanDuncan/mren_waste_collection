@@ -70,7 +70,18 @@ class Idle(smach.State):
     def __init__(self, data):
         smach.State.__init__(self, outcomes=['detected', 'preempted'])
         self.data = data
-        self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
+        self.high_cmd_pub = rospy.Publisher('/high_cmd', HighCmd, queue_size=1)
+
+    def create_high_cmd(self, linear_x=0, linear_y=0, yaw_speed=0, mode=0, gait_type=0, body_height=0):
+        cmd = HighCmd()
+        cmd.head = [0xFE, 0xEF]
+        cmd.levelFlag = 0xee # HIGHLEVEL
+        cmd.mode = mode
+        cmd.gaitType = gait_type
+        cmd.velocity = [linear_x, linear_y]
+        cmd.yawSpeed = yaw_speed
+        cmd.bodyHeight = body_height
+        return cmd
 
     def execute(self, userdata):
         rospy.loginfo("Entering State: IDLE")
@@ -78,12 +89,12 @@ class Idle(smach.State):
         # Move arm to Home
         move_manipulator(JOINT_SET_1)
         
-        # Stop robot
-        stop_msg = Twist()
+        # Stop robot - Force Stand
+        stop_cmd = self.create_high_cmd(mode=1)
         if not self.data.debug:
-            self.cmd_vel_pub.publish(stop_msg)
+            self.high_cmd_pub.publish(stop_cmd)
         else:
-            rospy.loginfo("[DEBUG] IDLE: Would publish zero cmd_vel")
+            rospy.loginfo("[DEBUG] IDLE: Would publish HighCmd mode=1 (Force Stand)")
         
         rate = rospy.Rate(10)
         while not rospy.is_shutdown():
@@ -96,7 +107,18 @@ class ApproachCoarse(smach.State):
     def __init__(self, data):
         smach.State.__init__(self, outcomes=['centered', 'lost', 'preempted'])
         self.data = data
-        self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
+        self.high_cmd_pub = rospy.Publisher('/high_cmd', HighCmd, queue_size=1)
+
+    def create_high_cmd(self, linear_x=0, linear_y=0, yaw_speed=0, mode=0, gait_type=0, body_height=0):
+        cmd = HighCmd()
+        cmd.head = [0xFE, 0xEF]
+        cmd.levelFlag = 0xee # HIGHLEVEL
+        cmd.mode = mode
+        cmd.gaitType = gait_type
+        cmd.velocity = [linear_x, linear_y]
+        cmd.yawSpeed = yaw_speed
+        cmd.bodyHeight = body_height
+        return cmd
 
     def execute(self, userdata):
         rospy.loginfo("Entering State: APPROACH (COARSE) - Discrete Mode")
@@ -104,9 +126,9 @@ class ApproachCoarse(smach.State):
         while not rospy.is_shutdown():
             # --- PHASE 1: STABILIZE & OBSERVE ---
             # Stop any movement and wait for motion blur to settle
-            stop_msg = Twist()
+            stop_cmd = self.create_high_cmd(mode=1)
             if not self.data.debug:
-                self.cmd_vel_pub.publish(stop_msg)
+                self.high_cmd_pub.publish(stop_cmd)
             
             # rospy.loginfo("PHASE: STABILIZE & OBSERVE (Wait for clear image)")
             rospy.sleep(2.0) # Wait for camera to stabilize
@@ -141,9 +163,9 @@ class ApproachCoarse(smach.State):
                 return 'centered'
 
             # --- PHASE 3: EXECUTE (Short Burst) ---
-            twist = Twist()
-            twist.angular.z = error_x * 0.003
-            twist.linear.x = max(min(target_vel, 0.2), -0.2)
+            vx = max(min(target_vel, 0.2), -0.2)
+            vyaw = error_x * 0.003
+            move_cmd = self.create_high_cmd(linear_x=vx, yaw_speed=vyaw, mode=2, gait_type=1)
             
             rospy.loginfo(f"PHASE: MOVE - x_err={error_x}, dist_err={dist_meters-0.4:.2f}, j4={new_j4:.3f}")
             
@@ -153,15 +175,16 @@ class ApproachCoarse(smach.State):
             
             if not self.data.debug:
                 # Move Base for 0.5s
+                rospy.loginfo(f"Moving base for 1.0s: lin={vx:.2f}, ang={vyaw:.2f}")
                 start_time = rospy.Time.now()
-                move_duration = rospy.Duration(0.5)
+                move_duration = rospy.Duration(1.0)
                 rate = rospy.Rate(10)
                 while rospy.Time.now() - start_time < move_duration:
-                    self.cmd_vel_pub.publish(twist)
+                    self.high_cmd_pub.publish(move_cmd)
                     rate.sleep()
-                self.cmd_vel_pub.publish(stop_msg)
+                self.high_cmd_pub.publish(stop_cmd)
             else:
-                # rospy.loginfo(f"[DEBUG] Would move for 0.5s: lin={twist.linear.x:.2f}, ang={twist.angular.z:.2f}")
+                # rospy.loginfo(f"[DEBUG] Would move for 1.0s: lin={vx:.2f}, ang={vyaw:.2f}")
                 rospy.sleep(0.5)
 
         return 'preempted'
@@ -170,7 +193,18 @@ class ApproachFine(smach.State):
     def __init__(self, data):
         smach.State.__init__(self, outcomes=['reached', 'lost', 'preempted'])
         self.data = data
-        self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
+        self.high_cmd_pub = rospy.Publisher('/high_cmd', HighCmd, queue_size=1)
+
+    def create_high_cmd(self, linear_x=0, linear_y=0, yaw_speed=0, mode=0, gait_type=0, body_height=0):
+        cmd = HighCmd()
+        cmd.head = [0xFE, 0xEF]
+        cmd.levelFlag = 0xee # HIGHLEVEL
+        cmd.mode = mode
+        cmd.gaitType = gait_type
+        cmd.velocity = [linear_x, linear_y]
+        cmd.yawSpeed = yaw_speed
+        cmd.bodyHeight = body_height
+        return cmd
 
     def execute(self, userdata):
         rospy.loginfo("Entering State: APPROACH (FINE) - Discrete Mode")
@@ -180,9 +214,9 @@ class ApproachFine(smach.State):
         
         while not rospy.is_shutdown():
             # --- PHASE 1: STABILIZE & OBSERVE ---
-            stop_msg = Twist()
+            stop_cmd = self.create_high_cmd(mode=1)
             if not self.data.debug:
-                self.cmd_vel_pub.publish(stop_msg)
+                self.high_cmd_pub.publish(stop_cmd)
             
             # rospy.loginfo("PHASE: STABILIZE & OBSERVE")
             rospy.sleep(1.0)
@@ -202,9 +236,9 @@ class ApproachFine(smach.State):
                 return 'reached'
             
             # --- PHASE 3: EXECUTE (Short Burst) ---
-            twist = Twist()
-            twist.angular.z = error_x * 0.001
-            twist.linear.x = error_y * 0.001
+            vx = error_y * 0.001
+            vyaw = error_x * 0.001
+            move_cmd = self.create_high_cmd(linear_x=vx, yaw_speed=vyaw, mode=2, gait_type=1)
             
             # rospy.loginfo(f"PHASE: MOVE - error_x={error_x}, error_y={error_y}")
             
@@ -213,11 +247,11 @@ class ApproachFine(smach.State):
                 move_duration = rospy.Duration(0.5)
                 rate = rospy.Rate(10)
                 while rospy.Time.now() - start_time < move_duration:
-                    self.cmd_vel_pub.publish(twist)
+                    self.high_cmd_pub.publish(move_cmd)
                     rate.sleep()
-                self.cmd_vel_pub.publish(stop_msg)
+                self.high_cmd_pub.publish(stop_cmd)
             else:
-                # rospy.loginfo(f"[DEBUG] Would move for 0.5s: lin={twist.linear.x:.3f}, ang={twist.angular.z:.3f}")
+                # rospy.loginfo(f"[DEBUG] Would move for 0.5s: lin={vx:.3f}, ang={vyaw:.3f}")
                 rospy.sleep(0.5)
             
         return 'preempted'
