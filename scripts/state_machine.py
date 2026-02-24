@@ -108,8 +108,8 @@ class ApproachCoarse(smach.State):
             if not self.data.debug:
                 self.cmd_vel_pub.publish(stop_msg)
             
-            rospy.loginfo("PHASE: STABILIZE & OBSERVE (Wait for clear image)")
-            rospy.sleep(1.0) # Wait for camera to stabilize
+            # rospy.loginfo("PHASE: STABILIZE & OBSERVE (Wait for clear image)")
+            rospy.sleep(2.0) # Wait for camera to stabilize
             
             # Verify we still have the object
             if self.data.camera_data is None:
@@ -132,7 +132,7 @@ class ApproachCoarse(smach.State):
             # 3. Manipulator Control (Joint 4 Tracking)
             error_y = 240 - y_pos
             kp_j4 = 0.0005 
-            new_j4 = self.data.joint4_pos + (error_y * kp_j4)
+            new_j4 = self.data.joint4_pos - (error_y * kp_j4)
             new_j4 = max(min(new_j4, 2.04-0.1), -1.79+0.1)
 
             # Check for completion
@@ -147,9 +147,11 @@ class ApproachCoarse(smach.State):
             
             rospy.loginfo(f"PHASE: MOVE - x_err={error_x}, dist_err={dist_meters-0.4:.2f}, j4={new_j4:.3f}")
             
+            # Move Arm\
+            # rospy.loginfo(f"Moving manipulator joint 4 from {self.data.joint4_pos:.3f} to {new_j4:.3f}")
+            move_manipulator([0.0, -1.0, 0.3, new_j4], path_time=0.5)
+            
             if not self.data.debug:
-                # Move Arm
-                move_manipulator([0.0, -1.0, 0.3, new_j4], path_time=0.5)
                 # Move Base for 0.5s
                 start_time = rospy.Time.now()
                 move_duration = rospy.Duration(0.5)
@@ -159,7 +161,7 @@ class ApproachCoarse(smach.State):
                     rate.sleep()
                 self.cmd_vel_pub.publish(stop_msg)
             else:
-                rospy.loginfo(f"[DEBUG] Would move for 0.5s: lin={twist.linear.x:.2f}, ang={twist.angular.z:.2f}")
+                # rospy.loginfo(f"[DEBUG] Would move for 0.5s: lin={twist.linear.x:.2f}, ang={twist.angular.z:.2f}")
                 rospy.sleep(0.5)
 
         return 'preempted'
@@ -182,7 +184,7 @@ class ApproachFine(smach.State):
             if not self.data.debug:
                 self.cmd_vel_pub.publish(stop_msg)
             
-            rospy.loginfo("PHASE: STABILIZE & OBSERVE")
+            # rospy.loginfo("PHASE: STABILIZE & OBSERVE")
             rospy.sleep(1.0)
             
             if self.data.camera_data is None:
@@ -204,7 +206,7 @@ class ApproachFine(smach.State):
             twist.angular.z = error_x * 0.001
             twist.linear.x = error_y * 0.001
             
-            rospy.loginfo(f"PHASE: MOVE - error_x={error_x}, error_y={error_y}")
+            # rospy.loginfo(f"PHASE: MOVE - error_x={error_x}, error_y={error_y}")
             
             if not self.data.debug:
                 start_time = rospy.Time.now()
@@ -215,7 +217,7 @@ class ApproachFine(smach.State):
                     rate.sleep()
                 self.cmd_vel_pub.publish(stop_msg)
             else:
-                rospy.loginfo(f"[DEBUG] Would move for 0.5s: lin={twist.linear.x:.3f}, ang={twist.angular.z:.3f}")
+                # rospy.loginfo(f"[DEBUG] Would move for 0.5s: lin={twist.linear.x:.3f}, ang={twist.angular.z:.3f}")
                 rospy.sleep(0.5)
             
         return 'preempted'

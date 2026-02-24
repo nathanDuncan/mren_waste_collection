@@ -49,7 +49,7 @@ class ReceiverNode:
                 data, addr = self.sock.recvfrom(4096)
                 
                 # DIAGNOSTIC: Print raw info immediately
-                print(f"📩 Received {len(data)} bytes from {addr}")
+                # print(f"📩 Received {len(data)} bytes from {addr}")
                 
                 # Parse Protobuf
                 frame = detection_pb2.DetectionFrame()
@@ -63,9 +63,9 @@ class ReceiverNode:
                     # Calculate error
                     '''
                     float dist_meters = 3; 
-                    float width_cm = 4;
-                    float length_cm = 5;
-                    float angle = 6;
+                    float width_cm = 4;    
+                    float length_cm = 5;   
+                    float angle = 6;      
                     '''
                     camera_data = [obj.x_pos, obj.y_pos, obj.dist_meters, obj.width_cm, obj.length_cm, obj.angle]
                     
@@ -73,11 +73,11 @@ class ReceiverNode:
 
                     
                     # rospy.loginfo(f"🎯 Object: dist={obj.dist_meters:.2f}m, err_x={err_x:.1f}")
-                    print(f"   -> Detection: X:{obj.x_pos:.1f}, Dist:{obj.dist_meters:.2f}m")
+                    # print(f"   -> Detection: X:{obj.x_pos:.1f}, Dist:{obj.dist_meters:.2f}m")
                 else:
                     camera_msg.data = [-1.0, 0.0, 0.0, 0.0, 0.0]
                     # camera_msg.w = 0.0 # No objects in frame
-                    print("   -> Empty frame received (0 objects)")
+                    # print("   -> Empty frame received (0 objects)")
                 
                 self.camera_data_pub.publish(camera_msg)
                     
