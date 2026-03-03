@@ -123,12 +123,8 @@ include_directories(
 
 ## Mark executable scripts (Python etc.) for installation
 catkin_install_python(PROGRAMS
-  scripts/webcam_publisher.py
-  scripts/zed_publisher.py
-  scripts/realsense_publisher.py
   scripts/wasd_teleop.py
   scripts/orange_error_publisher.py
-  scripts/turtlesim_controller.py
   scripts/sender_node.py
   scripts/receiver.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

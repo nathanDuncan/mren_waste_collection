@@ -66,9 +66,9 @@ def move_manipulator(joint_angles, path_time=2.0):
 
 # --- States ---
 
-class Idle(smach.State):
-    def __init__(self, data):
-        smach.State.__init__(self, outcomes=['detected', 'preempted'])
+class BaseState(smach.State):
+    def __init__(self, outcomes, data):
+        smach.State.__init__(self, outcomes=outcomes)
         self.data = data
         self.high_cmd_pub = rospy.Publisher('/high_cmd', HighCmd, queue_size=1)
 
@@ -82,6 +82,10 @@ class Idle(smach.State):
         cmd.yawSpeed = yaw_speed
         cmd.bodyHeight = body_height
         return cmd
+
+class Idle(BaseState):
+    def __init__(self, data):
+        BaseState.__init__(self, outcomes=['detected', 'preempted'], data=data)
 
     def execute(self, userdata):
         rospy.loginfo("Entering State: IDLE")
@@ -96,6 +100,8 @@ class Idle(smach.State):
         else:
             rospy.loginfo("[DEBUG] IDLE: Would publish HighCmd mode=1 (Force Stand)")
         
+        return 'detected'
+
         rate = rospy.Rate(10)
         while not rospy.is_shutdown():
             if self.data.camera_data is not None:
@@ -103,22 +109,9 @@ class Idle(smach.State):
             rate.sleep()
         return 'preempted'
 
-class CorrectYaw(smach.State):
+class CorrectYaw(BaseState):
     def __init__(self, data):
-        smach.State.__init__(self, outcomes=['aligned', 'lost', 'preempted'])
-        self.data = data
-        self.high_cmd_pub = rospy.Publisher('/high_cmd', HighCmd, queue_size=1)
-
-    def create_high_cmd(self, linear_x=0, linear_y=0, yaw_speed=0, mode=0, gait_type=0, body_height=0):
-        cmd = HighCmd()
-        cmd.head = [0xFE, 0xEF]
-        cmd.levelFlag = 0xee # HIGHLEVEL
-        cmd.mode = mode
-        cmd.gaitType = gait_type
-        cmd.velocity = [linear_x, linear_y]
-        cmd.yawSpeed = yaw_speed
-        cmd.bodyHeight = body_height
-        return cmd
+        BaseState.__init__(self, outcomes=['aligned', 'lost', 'preempted'], data=data)
 
     def execute(self, userdata):
         rospy.loginfo("Entering State: CORRECT YAW")
@@ -133,21 +126,33 @@ class CorrectYaw(smach.State):
             
             if self.data.camera_data is None:
                 return 'lost'
-            
+
+            dist_meters = self.data.camera_data[2]
+            duration = min(max(dist_meters, 1.2), 2.0)
+
             x_pos = self.data.camera_data[0]
             error_x = 320 - x_pos
+            if dist_meters < 0.5:
+                error_x = error_x * dist_meters
             
-            if abs(error_x) < 40:
+            if abs(error_x) < 30:
                 rospy.loginfo("Yaw aligned.")
                 return 'aligned'
             
             # Execute Yaw Burst
-            vyaw = error_x * 0.003
+            vyaw = error_x * 0.002
+            if abs(vyaw) < 0.25 and vyaw > 0.0:
+                vyaw = 0.25
+            elif abs(vyaw) < 0.25 and vyaw < 0.0:
+                vyaw = -0.25
+
+            if abs(error_x) < 30: vyaw = 0.0
+            rospy.loginfo(f"[INFO] vyaw = {vyaw:.2f}, duration = {duration:.2f}")
             move_cmd = self.create_high_cmd(yaw_speed=vyaw, mode=2, gait_type=1)
             
             if not self.data.debug:
                 start_time = rospy.Time.now()
-                move_duration = rospy.Duration(1.2)
+                move_duration = rospy.Duration(duration)
                 rate = rospy.Rate(10)
                 while rospy.Time.now() - start_time < move_duration:
                     self.high_cmd_pub.publish(move_cmd)
@@ -159,23 +164,10 @@ class CorrectYaw(smach.State):
                 
         return 'preempted'
 
-class ApproachCoarse(smach.State):
+class ApproachCoarse(BaseState):
     def __init__(self, data):
-        smach.State.__init__(self, outcomes=['reach_circle', 'error_yaw', 'lost', 'preempted'])
-        self.data = data
-        self.high_cmd_pub = rospy.Publisher('/high_cmd', HighCmd, queue_size=1)
-
-    def create_high_cmd(self, linear_x=0, linear_y=0, yaw_speed=0, mode=0, gait_type=0, body_height=0):
-        cmd = HighCmd()
-        cmd.head = [0xFE, 0xEF]
-        cmd.levelFlag = 0xee # HIGHLEVEL
-        cmd.mode = mode
-        cmd.gaitType = gait_type
-        cmd.velocity = [linear_x, linear_y]
-        cmd.yawSpeed = yaw_speed
-        cmd.bodyHeight = body_height
-        return cmd
-
+        BaseState.__init__(self, outcomes=['reach_circle', 'error_yaw', 'lost', 'preempted'], data=data)
+        
     def execute(self, userdata):
         rospy.loginfo("Entering State: APPROACH (COARSE)")
         
@@ -185,7 +177,7 @@ class ApproachCoarse(smach.State):
             if not self.data.debug:
                 self.high_cmd_pub.publish(stop_cmd)
             
-            rospy.sleep(1.5)
+            rospy.sleep(2.5)
             
             if self.data.camera_data is None:
                 return 'lost'
@@ -202,58 +194,52 @@ class ApproachCoarse(smach.State):
                 rospy.logwarn(f"Yaw error too large ({error_x}), returning to CorrectYaw")
                 return 'error_yaw'
             
-            # Check if reached circle (1.0m)
+            # Check if reached circle (0.5m)
             # thresholds and depth is approximately 1 metre
-            if 0.5 <= dist_meters <= 0.7 and abs(error_x) < 40 and abs(error_y) < 40:
-                rospy.loginfo("Reached 0.6m circle and centered. Moving to CorrectAngle.")
+            if 0.4 <= dist_meters <= 0.6 and abs(error_x) < 40 and abs(error_y) < 40:
+                rospy.loginfo("Reached 0.5m circle and centered. Moving to CorrectAngle.")
                 return 'reach_circle'
+                #error_x = 0
+                #error_y = 0
+                #dist_meters = 0.5
 
             # Linear approach burst - No Yaw
-            kp_dist = 0.25
-            target_vel = kp_dist * (dist_meters - 0.6) # Target 1m
-            vx = max(min(target_vel, 0.1), -0.1)
-            
+            kp_dist = 0.4
+            target_vel = kp_dist * (dist_meters - 0.5) # Target 1m
+            vx = max(min(target_vel, 0.2), -0.2)
+            kp_y = 0.0005
+            vy = 0.0
+            if abs(error_y) > 40:
+                vy = max(min(kp_y*error_y, 0.1), -0.1)
+
             # Manipulator Control (Joint 4 Tracking)
             kp_j4 = 0.001 
             new_j4 = self.data.joint4_pos - (error_y * kp_j4)
             new_j4 = max(min(new_j4, 2.04-0.1), -1.79+0.1)
 
-            move_cmd = self.create_high_cmd(linear_x=vx, mode=2, gait_type=1) # yaw_speed=0
+            move_cmd = self.create_high_cmd(linear_x=vx, linear_y=vy, mode=2, gait_type=1) # yaw_speed=0
             
-            rospy.loginfo(f"APPROACH COARSE: dist={dist_meters:.2f}m, error_x={error_x:.1f}, vx={vx:.2f}")
+            rospy.loginfo(f"APPROACH COARSE: dist={dist_meters:.2f}m, error_x={error_x:.1f}, vx={vx:.2f}, vy={vy:.2f}")
             
             # Move Arm
             move_manipulator([0.0, -1.0, 0.3, new_j4], path_time=0.5)
             
             if not self.data.debug:
                 start_time = rospy.Time.now()
-                move_duration = rospy.Duration(0.8)
+                move_duration = rospy.Duration(1.2)
                 rate = rospy.Rate(10)
                 while rospy.Time.now() - start_time < move_duration:
                     self.high_cmd_pub.publish(move_cmd)
                     rate.sleep()
                 self.high_cmd_pub.publish(stop_cmd)
             else:
-                rospy.sleep(0.8)
+                rospy.sleep(1.2)
 
         return 'preempted'
 
-class CorrectAngle(smach.State):
+class CorrectAngle(BaseState):
     def __init__(self, data):
-        smach.State.__init__(self, outcomes=['aligned', 'error_dist', 'error_yaw', 'lost', 'preempted'])
-        self.data = data
-        self.high_cmd_pub = rospy.Publisher('/high_cmd', HighCmd, queue_size=1)
-
-    def create_high_cmd(self, linear_x=0, linear_y=0, yaw_speed=0, mode=0, gait_type=0, body_height=0):
-        cmd = HighCmd()
-        cmd.head = [0xFE, 0xEF]
-        cmd.levelFlag = 0xee # HIGHLEVEL
-        cmd.mode = mode
-        cmd.gaitType = gait_type
-        cmd.velocity = [linear_x, linear_y]
-        cmd.yawSpeed = yaw_speed
-        cmd.bodyHeight = body_height
-        return cmd
+        BaseState.__init__(self, outcomes=['aligned', 'error_dist', 'error_yaw', 'lost', 'preempted'], data=data)
 
     def execute(self, userdata):
         rospy.loginfo("Entering State: CORRECT ANGLE")
@@ -331,22 +317,9 @@ class CorrectAngle(smach.State):
                 
         return 'preempted'
 
-class ApproachFine(smach.State):
+class ApproachFine(BaseState):
     def __init__(self, data):
-        smach.State.__init__(self, outcomes=['reached', 'lost', 'preempted'])
-        self.data = data
-        self.high_cmd_pub = rospy.Publisher('/high_cmd', HighCmd, queue_size=1)
-
-    def create_high_cmd(self, linear_x=0, linear_y=0, yaw_speed=0, mode=0, gait_type=0, body_height=0):
-        cmd = HighCmd()
-        cmd.head = [0xFE, 0xEF]
-        cmd.levelFlag = 0xee # HIGHLEVEL
-        cmd.mode = mode
-        cmd.gaitType = gait_type
-        cmd.velocity = [linear_x, linear_y]
-        cmd.yawSpeed = yaw_speed
-        cmd.bodyHeight = body_height
-        return cmd
+        BaseState.__init__(self, outcomes=['reached', 'lost', 'preempted'], data=data)
 
     def execute(self, userdata):
         rospy.loginfo("Entering State: APPROACH (FINE) - Discrete Mode")
@@ -398,42 +371,43 @@ class ApproachFine(smach.State):
             
         return 'preempted'
 
-class Sit(smach.State):
+class Sit(BaseState):
     def __init__(self, data):
-        smach.State.__init__(self, outcomes=['finished', 'lost', 'preempted'])
-        self.data = data
-        self.high_cmd_pub = rospy.Publisher('/high_cmd', HighCmd, queue_size=1)
+        BaseState.__init__(self, outcomes=['finished', 'lost', 'preempted'], data=data)
 
     def execute(self, userdata):
         rospy.loginfo("Entering State: SIT")
-        
-        cmd = HighCmd()
-        cmd.mode = 1 # Forced stand / control mode
-        cmd.bodyHeight = -0.2
-        
-        if not self.data.debug:
-            self.high_cmd_pub.publish(cmd)
-        else:
-            rospy.loginfo(f"[DEBUG] SIT: HighCmd(mode={cmd.mode}, bodyHeight={cmd.bodyHeight})")
-        
-        rospy.sleep(2.0) # Wait for crouch
-        
-        # Maintain state or move to finish? 
-        # Requirement says "If at any point the object is lost for 5 loops, return to Idle"
+
+        # Target command 
+        sit_cmd = self.create_high_cmd(mode=1, body_height=-0.2)
+
+        # Reset command
+        reset_cmd = self.create_high_cmd(mode=1, body_height=0.0)
+
         rate = rospy.Rate(10)
+
+        start_time = rospy.Time.now()
+        duration = rospy.Duration(2.0)
+
         while not rospy.is_shutdown():
-            if self.data.camera_data is None:
-                # Reset posture before going home?
-                reset_cmd = HighCmd()
-                reset_cmd.mode = 1
-                reset_cmd.bodyHeight = 0.0
+            if rospy.Time.now() - start_time < duration:
                 if not self.data.debug:
-                    self.high_cmd_pub.publish(reset_cmd)
+                    self.high_cmd_pub.publish(sit_cmd)
                 else:
-                    rospy.loginfo("[DEBUG] SIT -> IDLE: Would reset posture.")
-                return 'lost'
+                    if int(rospy.Time.now().to_sec()*10)%10 == 0: # Log once per sec
+                        rospy.loginfo(f"[Debug] SIT: Publishing sid command (bodyheight={sit_cmd.bodyHeight})")
+            else:
+                if self.data.camera_data is None:
+                    if not self.data.debug:
+                        # send reset command
+                        for _ in range(5):
+                            self.high_cmd_pub.publish(reset_cmd)
+                            rate.sleep()
+                    else:
+                        rospy.loginfo("[DEBUG] SIT -> IDLE: would reset posture.")
+                    return 'lost'
             rate.sleep()
-            
+
         return 'finished'
 
 def main():
@@ -447,7 +421,7 @@ def main():
 
     with sm:
         smach.StateMachine.add('IDLE', Idle(data), 
-                                transitions={'detected':'CORRECT_YAW', 
+                                transitions={'detected':'SIT',# CORRECT_YAW 
                                              'preempted':'preempted'})
         
         smach.StateMachine.add('CORRECT_YAW', CorrectYaw(data),
@@ -456,7 +430,7 @@ def main():
                                              'preempted':'preempted'})
 
         smach.StateMachine.add('APPROACH_COARSE', ApproachCoarse(data), 
-                                transitions={'reach_circle':'CORRECT_ANGLE',
+                                transitions={'reach_circle':'SIT',# CORRECT_ANGLE
                                              'error_yaw':'CORRECT_YAW',
                                              'lost':'IDLE', 
                                              'preempted':'preempted'})
