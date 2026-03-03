@@ -346,7 +346,7 @@ class ApproachFine(BaseState):
             error_x = 320 - x_pos
             error_y = 240 - y_pos 
             
-            if abs(error_x) < 10 and abs(error_y) < 10:
+            if abs(error_x) < 20 and abs(error_y) < 20:
                 rospy.loginfo("Centering complete.")
                 return 'reached'
             
@@ -359,7 +359,7 @@ class ApproachFine(BaseState):
             
             if not self.data.debug:
                 start_time = rospy.Time.now()
-                move_duration = rospy.Duration(0.5)
+                move_duration = rospy.Duration(0.8)
                 rate = rospy.Rate(10)
                 while rospy.Time.now() - start_time < move_duration:
                     self.high_cmd_pub.publish(move_cmd)
@@ -376,10 +376,11 @@ class Sit(BaseState):
         BaseState.__init__(self, outcomes=['finished', 'lost', 'preempted'], data=data)
 
     def execute(self, userdata):
+        rospy.sleep(1)
         rospy.loginfo("Entering State: SIT")
 
         # Target command 
-        sit_cmd = self.create_high_cmd(mode=1, body_height=-0.2)
+        sit_cmd = self.create_high_cmd(mode=5)
 
         # Reset command
         reset_cmd = self.create_high_cmd(mode=1, body_height=0.0)
@@ -387,7 +388,11 @@ class Sit(BaseState):
         rate = rospy.Rate(10)
 
         start_time = rospy.Time.now()
-        duration = rospy.Duration(2.0)
+        duration = rospy.Duration(0.1)
+
+        print("Sending sit command")
+        self.high_cmd_pub.publish(sit_cmd)
+        rospy.sleep(2)
 
         while not rospy.is_shutdown():
             if rospy.Time.now() - start_time < duration:
@@ -401,12 +406,14 @@ class Sit(BaseState):
                     if not self.data.debug:
                         # send reset command
                         for _ in range(5):
-                            self.high_cmd_pub.publish(reset_cmd)
+                            print("reset") #self.high_cmd_pub.publish(reset_cmd)
                             rate.sleep()
                     else:
                         rospy.loginfo("[DEBUG] SIT -> IDLE: would reset posture.")
-                    return 'lost'
+                    # return 'lost'
             rate.sleep()
+        print("Done")
+        rospy.sleep(10)
 
         return 'finished'
 
@@ -421,7 +428,7 @@ def main():
 
     with sm:
         smach.StateMachine.add('IDLE', Idle(data), 
-                                transitions={'detected':'SIT',# CORRECT_YAW 
+                                transitions={'detected':'CORRECT_YAW',
                                              'preempted':'preempted'})
         
         smach.StateMachine.add('CORRECT_YAW', CorrectYaw(data),
@@ -430,7 +437,7 @@ def main():
                                              'preempted':'preempted'})
 
         smach.StateMachine.add('APPROACH_COARSE', ApproachCoarse(data), 
-                                transitions={'reach_circle':'SIT',# CORRECT_ANGLE
+                                transitions={'reach_circle':'APPROACH_FINE',# CORRECT_ANGLE
                                              'error_yaw':'CORRECT_YAW',
                                              'lost':'IDLE', 
                                              'preempted':'preempted'})
