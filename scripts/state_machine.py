@@ -129,7 +129,7 @@ class CorrectYaw(smach.State):
             if not self.data.debug:
                 self.high_cmd_pub.publish(stop_cmd)
             
-            rospy.sleep(1.0) # Wait for camera blur
+            rospy.sleep(1.5) # Wait for camera blur
             
             if self.data.camera_data is None:
                 return 'lost'
@@ -137,7 +137,7 @@ class CorrectYaw(smach.State):
             x_pos = self.data.camera_data[0]
             error_x = 320 - x_pos
             
-            if abs(error_x) < 30:
+            if abs(error_x) < 40:
                 rospy.loginfo("Yaw aligned.")
                 return 'aligned'
             
@@ -147,7 +147,7 @@ class CorrectYaw(smach.State):
             
             if not self.data.debug:
                 start_time = rospy.Time.now()
-                move_duration = rospy.Duration(0.5)
+                move_duration = rospy.Duration(1.2)
                 rate = rospy.Rate(10)
                 while rospy.Time.now() - start_time < move_duration:
                     self.high_cmd_pub.publish(move_cmd)
@@ -155,7 +155,7 @@ class CorrectYaw(smach.State):
                 self.high_cmd_pub.publish(stop_cmd)
             else:
                 rospy.loginfo(f"[DEBUG] CORRECT YAW: Would yaw at {vyaw:.2f}")
-                rospy.sleep(0.5)
+                rospy.sleep(1.2)
                 
         return 'preempted'
 
@@ -185,7 +185,7 @@ class ApproachCoarse(smach.State):
             if not self.data.debug:
                 self.high_cmd_pub.publish(stop_cmd)
             
-            rospy.sleep(1.0)
+            rospy.sleep(1.5)
             
             if self.data.camera_data is None:
                 return 'lost'
@@ -204,17 +204,17 @@ class ApproachCoarse(smach.State):
             
             # Check if reached circle (1.0m)
             # thresholds and depth is approximately 1 metre
-            if 0.9 <= dist_meters <= 1.1 and abs(error_x) < 40 and abs(error_y) < 20:
-                rospy.loginfo("Reached 1m circle and centered. Moving to CorrectAngle.")
+            if 0.5 <= dist_meters <= 0.7 and abs(error_x) < 40 and abs(error_y) < 40:
+                rospy.loginfo("Reached 0.6m circle and centered. Moving to CorrectAngle.")
                 return 'reach_circle'
 
             # Linear approach burst - No Yaw
-            kp_dist = 0.5
-            target_vel = kp_dist * (dist_meters - 1.0) # Target 1m
-            vx = max(min(target_vel, 0.2), -0.2)
+            kp_dist = 0.25
+            target_vel = kp_dist * (dist_meters - 0.6) # Target 1m
+            vx = max(min(target_vel, 0.1), -0.1)
             
             # Manipulator Control (Joint 4 Tracking)
-            kp_j4 = 0.0005 
+            kp_j4 = 0.001 
             new_j4 = self.data.joint4_pos - (error_y * kp_j4)
             new_j4 = max(min(new_j4, 2.04-0.1), -1.79+0.1)
 
@@ -227,14 +227,14 @@ class ApproachCoarse(smach.State):
             
             if not self.data.debug:
                 start_time = rospy.Time.now()
-                move_duration = rospy.Duration(0.5)
+                move_duration = rospy.Duration(0.8)
                 rate = rospy.Rate(10)
                 while rospy.Time.now() - start_time < move_duration:
                     self.high_cmd_pub.publish(move_cmd)
                     rate.sleep()
                 self.high_cmd_pub.publish(stop_cmd)
             else:
-                rospy.sleep(0.5)
+                rospy.sleep(0.8)
 
         return 'preempted'
 
