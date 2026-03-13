@@ -199,9 +199,6 @@ class ApproachCoarse(BaseState):
             if 0.4 <= dist_meters <= 0.6 and abs(error_x) < 40 and abs(error_y) < 40:
                 rospy.loginfo("Reached 0.5m circle and centered. Moving to CorrectAngle.")
                 return 'reach_circle'
-                #error_x = 0
-                #error_y = 0
-                #dist_meters = 0.5
 
             # Linear approach burst - No Yaw
             kp_dist = 0.4
@@ -437,7 +434,7 @@ def main():
                                              'preempted':'preempted'})
 
         smach.StateMachine.add('APPROACH_COARSE', ApproachCoarse(data), 
-                                transitions={'reach_circle':'APPROACH_FINE',# CORRECT_ANGLE
+                                transitions={'reach_circle':'SIT',# CORRECT_ANGLE
                                              'error_yaw':'CORRECT_YAW',
                                              'lost':'IDLE', 
                                              'preempted':'preempted'})
