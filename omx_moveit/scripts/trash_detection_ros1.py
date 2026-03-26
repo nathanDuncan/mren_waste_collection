@@ -90,6 +90,56 @@ class ObjectDetector:
         H, W = frame.shape[:2]
         debug_frame = frame.copy() if show_debug else None
 
+        # --- HUD: Draw Guide Lines (Done ONCE per frame, before detection) ---
+        mode = "search"
+        mode = "pickup"
+        if show_debug and debug_frame is not None:
+            if mode == "pickup":
+                y_threshold_percentage = 1-0.40
+                y_threshold_tolerance = 0.05
+                x_threshold_percentage = 1-0.53
+                x_threshold_tolerance = 0.05
+            elif mode == "search":
+                y_threshold_percentage = 1-0.50
+                y_threshold_tolerance = 0.01
+                x_threshold_percentage = 1-0.53
+                x_threshold_tolerance = 0.01
+
+            y_percent = 1 - y_threshold_percentage
+            x_percent = 1 - x_threshold_percentage
+
+            # Draw two horizontal guide lines
+            cv2.line(
+                debug_frame,
+                (0, int(y_percent * H - y_threshold_tolerance * H)),
+                (W, int(y_percent * H - y_threshold_tolerance * H)),
+                (255, 0, 0),
+                2,
+            )
+            cv2.line(
+                debug_frame,
+                (0, int(y_percent * H + y_threshold_tolerance * H)),
+                (W, int(y_percent * H + y_threshold_tolerance * H)),
+                (255, 0, 0),
+                2,
+            )
+
+            # Draw two vertical guide lines
+            cv2.line(
+                debug_frame,
+                (int(x_percent * W - x_threshold_tolerance * W), 0),
+                (int(x_percent * W - x_threshold_tolerance * W), H),
+                (255, 0, 0),
+                2,
+            )
+            cv2.line(
+                debug_frame,
+                (int(x_percent * W + x_threshold_tolerance * W), 0),
+                (int(x_percent * W + x_threshold_tolerance * W), H),
+                (255, 0, 0),
+                2,
+            )
+
         # Prediction step (will pause here for a minute on the very first frame)
         results = self.model.predict(frame, imgsz=640, conf=0.75, verbose=False)
         r = results[0]
@@ -123,12 +173,13 @@ class ObjectDetector:
 
                 angle_major = -angle_major
 
-                # --- 4. Visualization ---
-                if show_debug:
+                # --- 4. Visualization (Object Specific) ---
+                if show_debug and debug_frame is not None:
                     cv2.drawContours(debug_frame, [c], -1, (0, 255, 0), 2)
                     cv2.circle(debug_frame, (cx_int, cy_int), 5, (0, 0, 255), -1)
 
                     labels = [
+                        f"Pixels: {cx_int}, {cy_int}",
                         f"Dist: {distance_meters:.2f}m",
                         f"Size: {real_width_cm:.1f}x{real_length_cm:.1f}cm",
                         f"Ang: {angle_major:.1f}deg",
@@ -168,9 +219,9 @@ class ObjectDetector:
         if show_debug and debug_frame is not None:
             self.debug_pub_.publish(self.bridge.cv2_to_imgmsg(debug_frame, "bgr8"))
 
-            # --- NEW: Show local OpenCV window ---
+            # Show local OpenCV window
             cv2.imshow("YOLO + RealSense Output", debug_frame)
-            cv2.waitKey(1)  # 1ms delay is required for OpenCV to update the GUI
+            cv2.waitKey(1)
 
     def cleanup(self):
         rospy.loginfo("Shutting down Object Detector node...")
