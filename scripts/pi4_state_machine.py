@@ -10,11 +10,20 @@ from geometry_msgs.msg import Twist, Quaternion
 from unitree_legged_msgs.msg import HighCmd
 from open_manipulator_msgs.msg import JointPosition, KinematicsPose
 from open_manipulator_msgs.srv import SetJointPosition, SetKinematicsPose
+from master_control_script import Controller
 
 # Joint Presets
 JOINT_HOME = [0.0, -1.0, 0.3, 0.7]
-JOINT_SCAN_START = [-1.0, -1.0, 0.3, 0.7] # joint1 at -1.0  3## Dear Daniel, does this look right?
+JOINT_SCAN_START = [-1.0, -1.0, 0.3, 0.7] # joint1 at -1.0  3## Dear Daniel, does this look right? Yeah, could prob move joint 1 further too
 JOINT_SCAN_END = [1.0, -1.0, 0.3, 0.7]   # joint1 at 1.0
+
+TIME = 1.0
+JOINT_SPACE_TIME = 3.0
+DROP_THRESHOLD = 0.00
+H = 480
+W = 640
+
+controller = Controller()
 
 class StateMachineData:
     def __init__(self):
@@ -72,12 +81,10 @@ def move_manipulator(joint_angles, path_time=2.0):
 def project_location(camera_data):
     """Stub for projecting pixel data to GO1 X,Y."""
     rospy.loginfo(f"Projecting location for object at {camera_data[0]}, {camera_data[1]}")
+    controller.project_object()
+    location = [controller.can_global_pos[0], controller.can_global_pos[1], -0.1]
 
-    # Dear Daniel, please put the vector conversions we made here.
-
-    # Optional: Also add an offset
-
-    return [0.5, 0.0, -0.1] # Returns dummy 3D coords # 3rd coord would be angle
+    return location # Returns dummy 3D coords # 3rd coord would be angle
 
 def send_message(data):
     """Stub for sending data to other nodes."""
@@ -140,7 +147,10 @@ class Measure(smach.State):
         # Centering logic (P-control)
         kp_x = 0.0005
         kp_y = 0.0005
-        
+
+        controller.mode = "search"
+        controller.start_scan()
+        '''
         while not rospy.is_shutdown():
             if self.data.camera_data is None:
                 rospy.logwarn("Object lost during MEASURE")
@@ -162,6 +172,7 @@ class Measure(smach.State):
             
             move_manipulator([new_j1, -1.0, 0.3, new_j4], path_time=0.2)
             rospy.sleep(0.1)
+        '''
             
         # Call auxiliary functions
         loc = project_location(self.data.camera_data)
@@ -212,6 +223,8 @@ class Grab(smach.State):
         # 2. Perform Pickup
         rospy.loginfo("Performing arm pickup sequence...")
         # Dear Daniel, please put your pickup code here.
+        controller.mode = "pickup"
+        controller.start_pickup()
         
         rospy.loginfo("Pickup sequence complete.")
         return 'finished'
@@ -232,7 +245,7 @@ def main():
                                              'preempted':'shutdown'})
         
         smach.StateMachine.add('MEASURE', Measure(data),
-                                transitions={'done':'SCAN',
+                                transitions={'done':'SCAN', # Should this go to IDLE when done, not SCAN?
                                              'lost':'SCAN',
                                              'preempted':'shutdown'})
         
