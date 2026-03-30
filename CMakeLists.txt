@@ -123,10 +123,11 @@ include_directories(
 
 ## Mark executable scripts (Python etc.) for installation
 catkin_install_python(PROGRAMS
-  scripts/wasd_teleop.py
+  # scripts/wasd_teleop.py
   scripts/orange_error_publisher.py
   scripts/sender_node.py
   scripts/receiver.py
+  scripts/trash_detection_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

@@ -7,153 +7,97 @@ import numpy as np
 import cv2
 import rospy
 import rospkg
-from std_msgs.msg import String
-from sensor_msgs.msg import Image
-from cv_bridge import CvBridge
-
-# --- Import RealSense ---
-# Keep your specific Pi 5 build path
-realsense_dir = "/home/pi5/librealsense/build/Release"
-if realsense_dir not in sys.path:
-    sys.path.append(realsense_dir)
-
-try:
-    import pyrealsense2 as rs
-except ImportError:
-    print(f"❌ Error: Could not find pyrealsense2 in {realsense_dir}")
-    sys.exit(1)
-
-from ultralytics import YOLO
-import socket
-import zlib
 import threading
-
-# Import generated Protobuf
-script_dir = os.path.dirname(os.path.abspath(__file__))
-if script_dir not in sys.path:
-    sys.path.append(script_dir)
-
-try:
-    import image_stream_pb2
-except ImportError:
-    rospy.logwarn("image_stream_pb2.py not found. Network mode will not work.")
-
+import time
+from std_msgs.msg import String, Float32
+from sensor_msgs.msg import Image, CameraInfo
+from cv_bridge import CvBridge
+from ultralytics import YOLO
 
 class ObjectDetector:
     def __init__(self):
         rospy.init_node('object_detector', anonymous=True)
         
         # 1. Parameters & Path
-        # In Noetic, params are usually loaded from the parameter server
         self.enable_vis = rospy.get_param('~enable_vis', True)
         self.bridge = CvBridge()
 
         # Get package path using rospkg
         rospack = rospkg.RosPack()
-        package_path = rospack.get_path('autonomous_litter_bot_package')
+        package_path = rospack.get_path('mren_waste_collector')
         self.model_path = os.path.join(package_path, 'models', 'segmentation_small_openvino_model')
         
         rospy.loginfo(f"Loading Model: {self.model_path}")
-        self.model = YOLO(self.model_path, task="segment")
+        try:
+            self.model = YOLO(self.model_path, task="segment")
+            rospy.loginfo("✅ YOLO Model loaded successfully.")
+        except Exception as e:
+            rospy.logerr(f"❌ Failed to load YOLO Model: {e}")
+            raise e
 
         # 2. Publishers
         self.publisher_ = rospy.Publisher('detected_objects', String, queue_size=10)
         self.debug_pub_ = rospy.Publisher('debug_image', Image, queue_size=10) 
 
-        # 3. Mode Selection
-        self.use_network = rospy.get_param('~use_network', False)
-        self.network_port = rospy.get_param('~network_port', 25001)
-        
-        self.latest_color = None
+        # 3. Subscribers
+        self.latest_colour = None
         self.latest_depth = None
         self.latest_intrinsics = None
         self.latest_depth_scale = None
         self.data_lock = threading.Lock()
 
-        if self.use_network:
-            rospy.loginfo(f"🌐 Network Mode Enabled. Listening on port {self.network_port}")
-            self.receiver_thread = threading.Thread(target=self.network_receiver, daemon=True)
-            self.receiver_thread.start()
-        else:
-            rospy.loginfo("📷 Local RealSense Mode Enabled.")
-            self.setup_realsense()
+        rospy.Subscriber('camera_frames', Image, self.color_callback)
+        rospy.Subscriber('depth_frames', Image, self.depth_callback)
+        rospy.Subscriber('camera_info', CameraInfo, self.info_callback)
+        rospy.Subscriber('depth_scale', Float32, self.scale_callback)
 
-        # ROS 1 Timer uses a Duration object
+        # ROS 1 Timer
         self.timer = rospy.Timer(rospy.Duration(0.1), self.timer_callback)
-        rospy.loginfo("✅ Node Initialized and Running.")
+        self.last_timer_time = time.time()
+        rospy.loginfo("✅ Node Initialized and Running. Subscribed to camera topics.")
 
-    def setup_realsense(self):
-        self.pipeline = rs.pipeline()
-        self.config = rs.config()
-        self.config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 6)
-        self.config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 6)
-        self.align = rs.align(rs.stream.color)
+    def color_callback(self, msg):
+        try:
+            cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+            with self.data_lock:
+                self.latest_colour = cv_image
+        except Exception as e:
+            rospy.logerr(f"Color callback error: {e}")
 
-        profile = self.pipeline.start(self.config)
-        color_stream = profile.get_stream(rs.stream.color).as_video_stream_profile()
-        self.intrinsics = color_stream.get_intrinsics()
-        # Get depth scale
-        depth_sensor = profile.get_device().first_depth_sensor()
-        self.depth_scale = depth_sensor.get_depth_scale()
+    def depth_callback(self, msg):
+        try:
+            # Depth is 16-bit unsigned (16UC1)
+            cv_depth = self.bridge.imgmsg_to_cv2(msg, "16UC1")
+            with self.data_lock:
+                self.latest_depth = cv_depth
+        except Exception as e:
+            rospy.logerr(f"Depth callback error: {e}")
 
-    def network_receiver(self):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.bind(("0.0.0.0", self.network_port))
-        sock.settimeout(1.0)
-        
-        while not rospy.is_shutdown():
-            try:
-                data, addr = sock.recvfrom(1024 * 1024) # 1MB buffer
-                msg = image_stream_pb2.ImageFrame()
-                msg.ParseFromString(data)
-                
-                # Decompress Color
-                color_np = np.frombuffer(msg.color_data, dtype=np.uint8)
-                color_img = cv2.imdecode(color_np, cv2.IMREAD_COLOR)
-                
-                # Decompress Depth
-                depth_decompressed = zlib.decompress(msg.depth_data)
-                depth_img = np.frombuffer(depth_decompressed, dtype=np.uint16).reshape((msg.height, msg.width))
-                
-                with self.data_lock:
-                    self.latest_color = color_img
-                    self.latest_depth = depth_img
-                    self.latest_intrinsics = msg
-                    self.latest_depth_scale = msg.depth_scale
-                    
-            except socket.timeout:
-                continue
-            except Exception as e:
-                rospy.logerr_throttle(5, f"Receiver error: {e}")
+    def info_callback(self, msg):
+        with self.data_lock:
+            self.latest_intrinsics = msg
+
+    def scale_callback(self, msg):
+        with self.data_lock:
+            self.latest_depth_scale = msg.data
 
     def timer_callback(self, event):
         # Refresh parameter value in case it changed
         show_debug = rospy.get_param('~enable_vis', self.enable_vis)
 
-        if self.use_network:
-            with self.data_lock:
-                if self.latest_color is None or self.latest_depth is None:
-                    return
-                frame = self.latest_color.copy()
-                depth_img = self.latest_depth.copy()
-                intrinsics = self.latest_intrinsics
-                depth_scale = self.latest_depth_scale
-        else:
-            try:
-                frames = self.pipeline.wait_for_frames(timeout_ms=5000)
-            except RuntimeError:
+        with self.data_lock:
+            if self.latest_colour is None or self.latest_depth is None or self.latest_intrinsics is None or self.latest_depth_scale is None:
                 return
-
-            aligned_frames = self.align.process(frames)
-            color_frame = aligned_frames.get_color_frame()
-            depth_frame = aligned_frames.get_depth_frame()
+            frame = self.latest_colour.copy()
+            depth_img = self.latest_depth.copy()
+            intrinsics = self.latest_intrinsics
+            depth_scale = self.latest_depth_scale
             
-            if not color_frame or not depth_frame: return
-
-            frame = np.asanyarray(color_frame.get_data())
-            depth_img = np.asanyarray(depth_frame.get_data())
-            intrinsics = self.intrinsics
-            depth_scale = self.depth_scale
+        # Log periodic status
+        current_time = time.time()
+        if current_time - self.last_timer_time > 5.0:
+            rospy.loginfo("Processing loop active. Receiving data from topics.")
+            self.last_timer_time = current_time
 
         H, W = frame.shape[:2]
         debug_frame = frame.copy() if show_debug else None
@@ -174,16 +118,19 @@ class ObjectDetector:
                 cy_int = max(0, min(int(cy), H - 1))
 
                 # Calculate distance in meters from depth map
-                # depth_img[cy, cx] is in units specified by depth_scale (usually mm)
                 dist_raw = depth_img[cy_int, cx_int]
                 distance_meters = dist_raw * depth_scale
                 
                 if distance_meters <= 0: continue 
 
-                real_width_cm = (ma * distance_meters / intrinsics.fx) * 100
-                real_length_cm = (MA * distance_meters / intrinsics.fy) * 100
+                # Use K[0] for fx and K[4] for fy (row-major: K[0,1,2, 3,4,5, 6,7,8])
+                fx = intrinsics.K[0]
+                fy = intrinsics.K[4]
+
+                real_width_cm = (ma * distance_meters / fx) * 100
+                real_length_cm = (MA * distance_meters / fy) * 100
                 
-                # Angle Logic (Kept same as original)
+                # Angle Logic
                 if angle > 90:
                     angle_major = angle - 180
                 else:
@@ -222,8 +169,7 @@ class ObjectDetector:
             self.debug_pub_.publish(self.bridge.cv2_to_imgmsg(debug_frame, "bgr8"))
 
     def stop(self):
-        if hasattr(self, 'pipeline'):
-            self.pipeline.stop()
+        pass
 
 if __name__ == '__main__':
     try:

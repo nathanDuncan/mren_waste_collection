@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\x12image_stream.proto\"\xad\x01\n\nImageFrame\x12\x12\n\ncolor_data\x18\x01 \x01(\x0c\x12\x12\n\ndepth_data\x18\x02 \x01(\x0c\x12\r\n\x05width\x18\x03 \x01(\x05\x12\x0e\n\x06height\x18\x04 \x01(\x05\x12\x11\n\ttimestamp\x18\x05 \x01(\x01\x12\n\n\x02\x66x\x18\x06 \x01(\x02\x12\n\n\x02\x66y\x18\x07 \x01(\x02\x12\x0b\n\x03ppx\x18\x08 \x01(\x02\x12\x0b\n\x03ppy\x18\t \x01(\x02\x12\x13\n\x0b\x64\x65pth_scale\x18\n \x01(\x02\x62\x06proto3')
+  serialized_pb=_b('\n\x12image_stream.proto\"\xae\x01\n\nImageFrame\x12\x13\n\x0b\x63olour_data\x18\x01 \x01(\x0c\x12\x12\n\ndepth_data\x18\x02 \x01(\x0c\x12\r\n\x05width\x18\x03 \x01(\x05\x12\x0e\n\x06height\x18\x04 \x01(\x05\x12\x11\n\ttimestamp\x18\x05 \x01(\x01\x12\n\n\x02\x66x\x18\x06 \x01(\x02\x12\n\n\x02\x66y\x18\x07 \x01(\x02\x12\x0b\n\x03ppx\x18\x08 \x01(\x02\x12\x0b\n\x03ppy\x18\t \x01(\x02\x12\x13\n\x0b\x64\x65pth_scale\x18\n \x01(\x02\x62\x06proto3')
 )
 
 
@@ -33,7 +33,7 @@ _IMAGEFRAME = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='color_data', full_name='ImageFrame.color_data', index=0,
+      name='colour_data', full_name='ImageFrame.colour_data', index=0,
       number=1, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
@@ -115,7 +115,7 @@ _IMAGEFRAME = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=23,
-  serialized_end=196,
+  serialized_end=197,
 )
 
 DESCRIPTOR.message_types_by_name['ImageFrame'] = _IMAGEFRAME

@@ -2,7 +2,7 @@ syntax = "proto3";
 
 message ImageFrame {
   // Compressed image data
-  bytes color_data = 1;      // JPEG compressed
+  bytes colour_data = 1;      // JPEG compressed
   bytes depth_data = 2;      // Raw or compressed (e.g. zlib) 16-bit depth
 
   // Image metadata
