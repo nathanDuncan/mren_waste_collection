@@ -27,7 +27,7 @@ class Controller:
     """
 
     def __init__(self):
-        rospy.init_node("manipulator_controller")
+        # rospy.init_node("manipulator_controller")
 
         # TODO: Get rid of instance variables that do not need to be class level
         # Manipulator States

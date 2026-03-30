@@ -23,7 +23,7 @@ DROP_THRESHOLD = 0.00
 H = 480
 W = 640
 
-controller = Controller()
+controller = None
 
 class StateMachineData:
     def __init__(self):
@@ -230,7 +230,9 @@ class Grab(smach.State):
         return 'finished'
 
 def main():
+    global controller
     rospy.init_node('pi4_state_machine')
+    controller = Controller()
     
     data = StateMachineData()
     rospy.Subscriber('/camera_data', Float32MultiArray, data.update_camera)
