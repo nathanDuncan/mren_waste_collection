@@ -137,40 +137,38 @@ class Controller:
             self.cy = None
     
     def project_object(self):
-        if self.mode == "search":
-            # 1. Get End Effector (EE) global position and rotation
-            ee_global_pos = np.array([self.current_pose.position.x, self.current_pose.position.y, self.current_pose.position.z])
-            quaternion = [self.current_pose.orientation.x, self.current_pose.orientation.y, self.current_pose.orientation.z, self.current_pose.orientation.w]
-            ee_rotation = R.from_quat(quaternion)
+        # 1. Get End Effector (EE) global position and rotation
+        ee_global_pos = np.array([self.current_pose.position.x, self.current_pose.position.y, self.current_pose.position.z])
+        quaternion = [self.current_pose.orientation.x, self.current_pose.orientation.y, self.current_pose.orientation.z, self.current_pose.orientation.w]
+        ee_rotation = R.from_quat(quaternion)
 
-            # 2. Define the Camera's local tilt (30 degrees down towards the floor)
-            camera_tilt_angle = np.radians(30)
-            ee_to_camera_R = np.array([
-                [np.cos(camera_tilt_angle), 0.0, np.sin(camera_tilt_angle)],
-                [0.0, 1.0, 0.0],
-                [-np.sin(camera_tilt_angle), 0.0, np.cos(camera_tilt_angle)]
-            ])
+        # 2. Define the Camera's local tilt (30 degrees down towards the floor)
+        camera_tilt_angle = np.radians(30)
+        ee_to_camera_R = np.array([
+            [np.cos(camera_tilt_angle), 0.0, np.sin(camera_tilt_angle)],
+            [0.0, 1.0, 0.0],
+            [-np.sin(camera_tilt_angle), 0.0, np.cos(camera_tilt_angle)]
+        ])
 
-            # 3. TODO: Define the Camera's local position offset from the EE
-            # (3cm back, 4cm up)
-            ee_to_camera_T = np.array([-0.025, 0.0, 0.03])
+        # 3. TODO: Define the Camera's local position offset from the EE
+        # (3cm back, 4cm up)
+        ee_to_camera_T = np.array([-0.025, 0.0, 0.03])
 
-            # --- CALCULATE GLOBAL CAMERA DIRECTION ---
-            local_forward = np.array([1.0, 0.0, 0.0])
-            # First apply the camera's own tilt, then apply the EE's global rotation
-            camera_local_direction = ee_to_camera_R @ local_forward
-            camera_global_direction = ee_rotation.apply(camera_local_direction)
+        # --- CALCULATE GLOBAL CAMERA DIRECTION ---
+        local_forward = np.array([1.0, 0.0, 0.0])
+        # First apply the camera's own tilt, then apply the EE's global rotation
+        camera_local_direction = ee_to_camera_R @ local_forward
+        camera_global_direction = ee_rotation.apply(camera_local_direction)
 
-            # --- CALCULATE GLOBAL CAMERA POSITION ---
-            # Rotate the local offset into the global frame, then add to EE's global position
-            camera_global_offset = ee_rotation.apply(ee_to_camera_T)
-            camera_global_pos = ee_global_pos + camera_global_offset
+        # --- CALCULATE GLOBAL CAMERA POSITION ---
+        # Rotate the local offset into the global frame, then add to EE's global position
+        camera_global_offset = ee_rotation.apply(ee_to_camera_T)
+        camera_global_pos = ee_global_pos + camera_global_offset
 
-            # --- CALCULATE TARGET POSITION (The Can) ---
-            # Start at the camera's lens, and move forward along its line of sight by the depth distance
-            self.can_global_pos = camera_global_pos + (camera_global_direction * self.can_dist)       
-        elif self.mode == "pickup":
-            pass
+        # --- CALCULATE TARGET POSITION (The Can) ---
+        # Start at the camera's lens, and move forward along its line of sight by the depth distance
+        self.can_global_pos = camera_global_pos + (camera_global_direction * self.can_dist)       
+
 
     # Helper functions to move in joint/task space absolute/delta
     def move_joint_space_absolute(self, joint_angles, path_time: float = TIME):

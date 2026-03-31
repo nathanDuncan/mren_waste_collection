@@ -93,9 +93,9 @@ def project_location(camera_data):
     """Stub for projecting pixel data to GO1 X,Y."""
     rospy.loginfo(f"Projecting location for object at {camera_data[0]}, {camera_data[1]}")
     controller.project_object()
-    location = [controller.can_global_pos[0], controller.can_global_pos[1], -0.1]
-
-    return location # Returns dummy 3D coords # 3rd coord would be angle
+    location = [controller.can_global_pos[0], controller.can_global_pos[1], 0.0]
+    rospy.loginfo(f"[DEBUG] location: {location}")
+    return location 
 
 def send_message(data):
     """Stub for sending data to other nodes."""
@@ -170,12 +170,12 @@ class Measure(smach.State):
         rospy.loginfo("Entering State: MEASURE")
         
         # Centering logic (P-control)
-        kp_x = 0.0005
-        kp_y = 0.0005
+        kp_x = 0.0006
+        kp_y = 0.0008
 
-        controller.mode = "search"
-        controller.start_scan()
-        '''
+        # controller.mode = "search"
+        # controller.start_scan()
+        
         while not rospy.is_shutdown():
             if self.data.camera_data is None:
                 rospy.logwarn("Object lost during MEASURE")
@@ -186,18 +186,20 @@ class Measure(smach.State):
             
             error_x = 320 - x_pos
             error_y = 240 - y_pos
+            rospy.loginfo(f"Error: {error_x}, {error_y}")
             
-            if abs(error_x) < 20 and abs(error_y) < 20:
+            if abs(error_x) < 15 and abs(error_y) < 15:
                 rospy.loginfo("Object centered.")
+                rospy.sleep(0.5)
                 break
                 
             # Adjust joint1 (horizontal) and joint4 (vertical)
             new_j1 = self.data.joint_states[0] + (error_x * kp_x)
-            new_j4 = self.data.joint_states[3] - (error_y * kp_y) # Y-axis inverted in image?
+            new_j4 = self.data.joint_states[3] - (error_y * kp_y)
             
-            move_manipulator([new_j1, -1.0, 0.3, new_j4], path_time=0.2)
+            move_manipulator([new_j1, -1.0, 0.3, new_j4], path_time=0.1)
             rospy.sleep(0.1)
-        '''
+        
             
         # Call auxiliary functions
         loc = project_location(self.data.camera_data)
@@ -287,7 +289,7 @@ def main():
                                              'preempted':'shutdown'})
         
         smach.StateMachine.add('MEASURE', Measure(data),
-                                transitions={'done':'SCAN', # Should this go to IDLE when done, not SCAN?
+                                transitions={'done':'IDLE', # Should this go to IDLE when done, not SCAN?
                                              'lost':'SCAN',
                                              'preempted':'shutdown'})
         
