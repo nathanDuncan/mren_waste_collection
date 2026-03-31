@@ -7,7 +7,11 @@ import smach_ros
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float32MultiArray, String
 from geometry_msgs.msg import Twist, Quaternion
-from unitree_legged_msgs.msg import HighCmd
+try:
+    from unitree_legged_msgs.msg import HighCmd
+except ImportError:
+    HighCmd = None
+
 from open_manipulator_msgs.msg import JointPosition, KinematicsPose
 from open_manipulator_msgs.srv import SetJointPosition, SetKinematicsPose
 from master_control_script import Controller
@@ -31,6 +35,13 @@ class StateMachineData:
         self.lost_count = 0
         self.max_lost = 5
         self.debug = rospy.get_param('~debug_mode', False)
+        if HighCmd is None:
+            if not self.debug:
+                rospy.logwarn("unitree_legged_msgs not found. Forcing debug mode.")
+            self.debug = True
+        
+        if self.debug:
+            rospy.loginfo("🛠 DEBUG MODE ENABLED: Unitree commands will be logged but not published.")
         
         # Joint state tracking
         self.joint_states = [0.0, 0.0, 0.0, 0.0] # j1, j2, j3, j4
@@ -205,20 +216,31 @@ class Grab(smach.State):
     def __init__(self, data):
         smach.State.__init__(self, outcomes=['finished', 'preempted'])
         self.data = data
-        self.high_cmd_pub = rospy.Publisher('/high_cmd', HighCmd, queue_size=1)
+        if HighCmd is not None:
+            self.high_cmd_pub = rospy.Publisher('/high_cmd', HighCmd, queue_size=1)
+        else:
+            self.high_cmd_pub = None
 
     def execute(self, userdata):
         rospy.loginfo("Entering State: GRAB")
         
         # 1. Sit the robot
-        sit_cmd = HighCmd()
-        sit_cmd.head = [0xFE, 0xEF]
-        sit_cmd.levelFlag = 0xee
-        sit_cmd.mode = 5 # SIT
-        
-        rospy.loginfo("Sending SIT command...")
-        self.high_cmd_pub.publish(sit_cmd)
-        rospy.sleep(3.0) # Wait for sit animation
+        if HighCmd is not None:
+            sit_cmd = HighCmd()
+            sit_cmd.head = [0xFE, 0xEF]
+            sit_cmd.levelFlag = 0xee
+            sit_cmd.mode = 5 # SIT
+            
+            if not self.data.debug:
+                rospy.loginfo("Sending SIT command...")
+                self.high_cmd_pub.publish(sit_cmd)
+                rospy.sleep(3.0) # Wait for sit animation
+            else:
+                rospy.loginfo("info: would send 0,0") # Using 0,0 for SIT velocity as requested format
+                rospy.sleep(1.0)
+        else:
+            rospy.loginfo("info: would send 0,0")
+            rospy.sleep(1.0)
         
         # 2. Perform Pickup
         rospy.loginfo("Performing arm pickup sequence...")
