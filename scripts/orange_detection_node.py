@@ -6,14 +6,12 @@ import json
 import numpy as np
 import cv2
 import rospy
-import rospkg
 import threading
 import time
 import socket
 from std_msgs.msg import String, Float32
 from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge
-from ultralytics import YOLO
 
 # Import generated Protobuf
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -25,38 +23,29 @@ try:
 except ImportError:
     rospy.logerr("❌ detection_pb2.py not found. Protobuf transmission will fail.")
 
-class ObjectDetector:
+class OrangeDetector:
     def __init__(self):
-        rospy.init_node('object_detector', anonymous=True)
+        rospy.init_node('orange_detector', anonymous=True)
         
         # 0. Debug Environment
-        rospy.loginfo("--- DRAGONS: Debugging ROS Env ---")
+        rospy.loginfo("--- Orange Detector: Initializing ---")
         rospy.loginfo(f"ROS_MASTER_URI: {os.environ.get('ROS_MASTER_URI')}")
-        rospy.loginfo(f"ROS_HOSTNAME: {os.environ.get('ROS_HOSTNAME')}")
-        rospy.loginfo(f"ROS_IP: {os.environ.get('ROS_IP')}")
         rospy.loginfo(f"Full Node Name: {rospy.get_name()}")
-        rospy.loginfo("----------------------------------")
         
-        # 1. Parameters & Path
+        # 1. Parameters & Constants
         self.enable_vis = rospy.get_param('~enable_vis', True)
         self.bridge = CvBridge()
-
-        # Get package path using rospkg
-        rospack = rospkg.RosPack()
-        package_path = rospack.get_path('mren_waste_collector')
-        self.model_path = os.path.join(package_path, 'models', 'segmentation_nano_openvino_model')
         
-        rospy.loginfo(f"Loading Model: {self.model_path}")
-        try:
-            self.model = YOLO(self.model_path, task="segment")
-            rospy.loginfo("✅ YOLO Model loaded successfully.")
-        except Exception as e:
-            rospy.logerr(f"❌ Failed to load YOLO Model: {e}")
-            raise e
+        # Color Masking Constants
+        self.LOWER_ORANGE = np.array([5, 60, 60])
+        self.UPPER_ORANGE = np.array([25, 255, 255])
+        self.MIN_CONTOUR_AREA = 500
+        self.kernel = np.ones((5, 5), np.uint8)
 
         # 2. Publishers
         self.publisher_ = rospy.Publisher('detected_objects', String, queue_size=10)
-        self.debug_pub_ = rospy.Publisher('debug_image', Image, queue_size=10) 
+        self.debug_image_pub = rospy.Publisher('/orange_detector/debug_image', Image, queue_size=10)
+        self.mask_pub = rospy.Publisher('/orange_detector/debug_mask', Image, queue_size=10)
 
         # 3. Subscribers
         self.latest_colour = None
@@ -79,7 +68,7 @@ class ObjectDetector:
         self.target_port = 25006
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         
-        rospy.loginfo(f"✅ Node Initialized. Sending Protobuf to {self.target_ip}:{self.target_port}")
+        rospy.loginfo(f"✅ Orange Detector Initialized. Sending Protobuf to {self.target_ip}:{self.target_port}")
 
     def color_callback(self, msg):
         try:
@@ -118,85 +107,89 @@ class ObjectDetector:
             intrinsics = self.latest_intrinsics
             depth_scale = self.latest_depth_scale
             
-        # Log periodic status
-        current_time = time.time()
-        if current_time - self.last_timer_time > 5.0:
-            # rospy.loginfo("Processing loop active. Receiving data from topics.")
-            self.last_timer_time = current_time
-
         H, W = frame.shape[:2]
         debug_frame = frame.copy() if show_debug else None
 
-        results = self.model.predict(frame, imgsz=640, conf=0.75, verbose=False)
-        r = results[0]
+        # --- Detection Logic (Orange Masking) ---
+        hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        orange_mask = cv2.inRange(hsv_frame, self.LOWER_ORANGE, self.UPPER_ORANGE)
+        mask_opened = cv2.morphologyEx(orange_mask, cv2.MORPH_OPEN, self.kernel, iterations=2)
+        mask_closed = cv2.morphologyEx(mask_opened, cv2.MORPH_CLOSE, self.kernel, iterations=2)
+        contours, _ = cv2.findContours(mask_closed.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
         detected_list = []
 
-        if r.masks is not None:
-            for mask_points in r.masks.xy:
-                c = mask_points.astype(np.int32)
-                if len(c) < 5: continue 
+        for cnt in contours:
+            area = cv2.contourArea(cnt)
+            if area < self.MIN_CONTOUR_AREA:
+                continue
 
-                ellipse = cv2.fitEllipse(c)
+            # Process the contour to find size and orientation
+            if len(cnt) < 5:
+                # Cannot fit ellipse, use bounding box as fallback for centroid
+                x, y, w, h = cv2.boundingRect(cnt)
+                cx, cy = x + w/2, y + h/2
+                MA, ma, angle = w, h, 0 
+                c = cnt
+            else:
+                ellipse = cv2.fitEllipse(cnt)
                 (cx, cy), (MA, ma), angle = ellipse
-                
-                cx_int = max(0, min(int(cx), W - 1))
-                cy_int = max(0, min(int(cy), H - 1))
+                c = cnt
 
-                # Calculate distance in meters from depth map
-                dist_raw = depth_img[cy_int, cx_int]
-                distance_meters = dist_raw * depth_scale
-                
-                if distance_meters <= 0: continue 
+            cx_int = max(0, min(int(cx), W - 1))
+            cy_int = max(0, min(int(cy), H - 1))
 
-                # Use K[0] for fx and K[4] for fy (row-major: K[0,1,2, 3,4,5, 6,7,8])
-                fx = intrinsics.K[0]
-                fy = intrinsics.K[4]
+            # Calculate distance in meters from depth map
+            dist_raw = depth_img[cy_int, cx_int]
+            distance_meters = dist_raw * depth_scale
+            
+            if distance_meters <= 0:
+                continue 
 
-                real_width_cm = (ma * distance_meters / fx) * 100
-                real_length_cm = (MA * distance_meters / fy) * 100
-                
-                # Angle Logic
-                if angle > 90:
-                    angle_major = angle - 180
-                else:
-                    angle_major = angle
-                angle_major = -angle_major
+            # Use K[0] for fx and K[4] for fy
+            fx = intrinsics.K[0]
+            fy = intrinsics.K[4]
 
-                if show_debug:
-                    cv2.drawContours(debug_frame, [c], -1, (0, 255, 0), 2)
-                    cv2.circle(debug_frame, (cx_int, cy_int), 5, (0, 0, 255), -1)
-                    labels = [
-                        f"Dist: {distance_meters:.2f}m",
-                        f"Size: {real_width_cm:.1f}x{real_length_cm:.1f}cm",
-                        f"Ang: {angle_major:.1f}deg",
-                    ]
-                    text_x = min(cx_int + 15, W - 160)
-                    text_y = cy_int
-                    for line in labels:
-                        cv2.putText(debug_frame, line, (text_x, text_y), 
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
-                        text_y += 18
+            real_width_cm = (ma * distance_meters / fx) * 100
+            real_length_cm = (MA * distance_meters / fy) * 100
+            
+            # Angle Logic
+            if angle > 90:
+                angle_major = angle - 180
+            else:
+                angle_major = angle
+            angle_major = -angle_major
 
-                obj_data = {
-                    "x_pos": float(cx), "y_pos": float(cy),
-                    "dist_meters": float(distance_meters),
-                    "width_cm": float(real_width_cm),
-                    "length_cm": float(real_length_cm),
-                    "angle": float(angle_major),
-                    "area": cv2.contourArea(c)
-                }
-                detected_list.append(obj_data)
+            if show_debug:
+                cv2.drawContours(debug_frame, [c], -1, (0, 255, 0), 2)
+                cv2.circle(debug_frame, (cx_int, cy_int), 5, (0, 0, 255), -1)
+                labels = [
+                    f"Dist: {distance_meters:.2f}m",
+                    f"Size: {real_width_cm:.1f}x{real_length_cm:.1f}cm",
+                    f"Ang: {angle_major:.1f}deg",
+                ]
+                text_x = min(cx_int + 15, W - 160)
+                text_y = cy_int
+                for line in labels:
+                    cv2.putText(debug_frame, line, (text_x, text_y), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+                    text_y += 18
+
+            obj_data = {
+                "x_pos": float(cx), "y_pos": float(cy),
+                "dist_meters": float(distance_meters),
+                "width_cm": float(real_width_cm),
+                "length_cm": float(real_length_cm),
+                "angle": float(angle_major),
+                "area": float(area)
+            }
+            detected_list.append(obj_data)
 
         # 4. Select largest object and send via Protobuf
         if detected_list:
             # Find the object with the greatest contour area
             largest_obj = max(detected_list, key=lambda x: x['area'])
             
-        #     # Print detection info
-        #     rospy.loginfo(f"🎯 Largest Object: x={largest_obj['x_pos']:.1f}, y={largest_obj['y_pos']:.1f}, "
-        #                   f"dist={largest_obj['dist_meters']:.2f}m, size={largest_obj['width_cm']:.1f}x{largest_obj['length_cm']:.1f}cm, "
-        #                   f"area={largest_obj['area']:.0f}")
-
             # Construct Protobuf message
             try:
                 frame_pb = detection_pb2.DetectionFrame()
@@ -214,26 +207,27 @@ class ObjectDetector:
             except Exception as e:
                 rospy.logerr(f"❌ Protobuf Sending Error: {e}")
 
-        # Publish JSON string (keeping original functionality)
+        # Publish JSON string
         self.publisher_.publish(String(data=json.dumps(detected_list)))
 
-        # Publish Debug Image
+        # Publish Debug Image & Mask
         if show_debug and debug_frame is not None:
-            self.debug_pub_.publish(self.bridge.cv2_to_imgmsg(debug_frame, "bgr8"))
-            cv2.imshow("Trash Detection Debug", debug_frame)
+            self.debug_image_pub.publish(self.bridge.cv2_to_imgmsg(debug_frame, "bgr8"))
+            
+            # Create a BGR mask for visualization
+            debug_mask_bgr = cv2.cvtColor(mask_closed, cv2.COLOR_GRAY2BGR)
+            self.mask_pub.publish(self.bridge.cv2_to_imgmsg(debug_mask_bgr, "bgr8"))
+            
+            cv2.imshow("Orange Detection Debug", debug_frame)
             cv2.waitKey(1)
         elif not show_debug:
             cv2.destroyAllWindows()
 
-    def stop(self):
-        pass
-
 if __name__ == '__main__':
     try:
-        detector = ObjectDetector()
+        detector = OrangeDetector()
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
     finally:
-        if 'detector' in locals():
-            detector.stop()
+        cv2.destroyAllWindows()
