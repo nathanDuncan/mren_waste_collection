@@ -22,7 +22,7 @@ class ReceiverNode:
     def __init__(self):
         rospy.init_node('receiver_node', log_level=rospy.DEBUG)
         
-        self.port = rospy.get_param('~port', 25000)
+        self.port = rospy.get_param('~port', 25006)
         self.center_x = rospy.get_param('~center_x', 320.0)
         self.center_y = rospy.get_param('~center_y', 240.0)
         
