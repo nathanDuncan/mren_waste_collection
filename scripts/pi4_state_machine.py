@@ -210,6 +210,10 @@ class Idle(smach.State):
         smach.State.__init__(self, outcomes=['start_scan', 'grab', 'preempted'])
         self.data = data
 
+        # pi4_state_machine.py - line 210
+# Ensure this is the ONLY subscriber to /camera_data
+# rospy.Subscriber('/camera_data', Float32MultiArray, data.update_camera)
+
     def execute(self, userdata):
         rospy.loginfo("Entering State: IDLE")
         self.data.idle_trigger = False

@@ -30,7 +30,6 @@ find_package(unitree_legged_sdk REQUIRED)
 ################################################
 ## Declare ROS messages, services and actions ##
 ################################################
-# ... (message/service/action sections omitted for brevity) ...
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
@@ -40,7 +39,6 @@ find_package(unitree_legged_sdk REQUIRED)
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
 ################################################
-# ... (dynamic reconfigure sections omitted for brevity) ...
 # generate_dynamic_reconfigure_options(
 #   cfg/DynReconf1.cfg
 #   cfg/DynReconf2.cfg
@@ -112,7 +110,6 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${unitree_legged_sdk_INCLUDE_DIRS}
 )
-# ... (library/executable sections omitted for brevity) ...
 
 #############
 ## Install ##
@@ -124,22 +121,17 @@ include_directories(
 ## Mark executable scripts (Python etc.) for installation
 catkin_install_python(PROGRAMS
   scripts/wasd_teleop.py
-  scripts/orange_error_publisher.py
   scripts/sender_node.py
   scripts/receiver.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
 ## Mark executables for installation
-# ... (install executable sections omitted for brevity) ...
 ## Mark libraries for installation
-# ... (install library sections omitted for brevity) ...
 ## Mark cpp header files for installation
-# ... (install header sections omitted for brevity) ...
 ## Mark other files for installation (e.g. launch and bag files, etc.)
-# ... (install other sections omitted for brevity) ...
+
 
 #############
 ## Testing ##
 #############
-# ... (testing sections omitted for brevity) ...
