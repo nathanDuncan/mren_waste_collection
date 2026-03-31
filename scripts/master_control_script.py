@@ -4,7 +4,7 @@ import rospy
 import json
 from open_manipulator_msgs.msg import KinematicsPose, JointPosition
 from open_manipulator_msgs.srv import SetKinematicsPose, SetJointPosition
-from std_msgs.msg import Int32MultiArray, String
+from std_msgs.msg import Float32MultiArray, String
 from sensor_msgs.msg import JointState
 import copy
 import math
@@ -69,7 +69,7 @@ class Controller:
         )
         rospy.Subscriber("/joint_states", JointState, self._joint_state_callback)
         rospy.Subscriber(
-            "/camera_data", String, callback=self._camera_subscriber_callback
+            "/camera_data", Float32MultiArray, callback=self._camera_subscriber_callback
         )
 
         rospy.wait_for_service("/goal_joint_space_path_from_present")
@@ -122,28 +122,19 @@ class Controller:
             self.current_joint_state = current_angles
 
     def _camera_subscriber_callback(self, msg):
-        try:
-            # Decode the JSON string back into a Python list
-            detected_objects = json.loads(msg.data)
-
-            # Make sure we actually detected something before grabbing coordinates
-            if len(detected_objects) > 0:
-                # Grab the first object in the list
-                self.object_found = True
-                self.can_dist = detected_objects[0]["dist_meters"]
-                self.cx = detected_objects[0]["x_pos"]
-                self.cy = detected_objects[0]["y_pos"]
-                self.can_height = detected_objects[0]["height"]
-                self.can_width = detected_objects[0]["width"]
-                self.can_angle = detected_objects[0]["angle"]
-            else:
-                # print("No object detected else statement")
-                self.object_found = False
-                self.cx = None
-                self.cy = None
-
-        except json.JSONDecodeError as e:
-            rospy.logwarn(f"Failed to parse JSON from camera: {e}")
+        if len(msg.data) >= 6 and msg.data[0] != -1.0:
+            # receiver.py mapping: [x_pos, y_pos, dist_meters, width_cm, length_cm, angle]
+            self.object_found = True
+            self.cx = msg.data[0]
+            self.cy = msg.data[1]
+            self.can_dist = msg.data[2]
+            self.can_width = msg.data[3]
+            self.can_height = msg.data[4]
+            self.can_angle = msg.data[5]
+        else:
+            self.object_found = False
+            self.cx = None
+            self.cy = None
     
     def project_object(self):
         if self.mode == "search":
