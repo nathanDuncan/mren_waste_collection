@@ -109,43 +109,57 @@ class Scan(smach.State):
         smach.State.__init__(self, outcomes=['detected', 'finished', 'preempted'])
         self.data = data
         self.sweep_count = 0
-        self.direction = 1 # 1 for right, -1 for left
 
     def execute(self, userdata):
         rospy.loginfo("Entering State: SCAN")
-        self.sweep_count = 0
         
+        # 1. Initial entrance: Move to Home and hold for 3 seconds
+        rospy.loginfo("SCAN: Moving to Home position...")
+        move_manipulator(JOINT_HOME, path_time=2.0)
+        rospy.loginfo("SCAN: Holding at Home for 3 seconds...")
+        
+        start_hold = rospy.Time.now()
+        while (rospy.Time.now() - start_hold).to_sec() < 3.0:
+            if rospy.is_shutdown(): return 'preempted'
+            if self.data.camera_data is not None:
+                rospy.loginfo("Object detected during initial hold!")
+                return 'detected'
+            rospy.sleep(0.1)
+            
+        self.sweep_count = 0
         while not rospy.is_shutdown() and self.sweep_count < 2:
-            # Target joint1 position
-            target_j1 = 1.0 if self.direction == 1 else -1.0
-            target_angles = [target_j1, -1.0, 0.3, 0.7]
+            rospy.loginfo(f"SCAN: Starting sweep cycle {self.sweep_count+1}/2 (Home -> Left -> Right -> Home)")
             
-            rospy.loginfo(f"Scanning: Sweep {self.sweep_count+1}/2, direction: {'Right' if self.direction == 1 else 'Left'}")
+            # Phase 1: Home (0.0) -> Left (-1.0) in 3 seconds
+            if self.move_with_detection(0.0, -1.0, 3.0) == 'detected': return 'detected'
             
-            # Start moving to target
-            # Note: Using small steps to allow checking for camera_data during movement
-            steps = 20
-            start_j1 = self.data.joint_states[0]
-            for i in range(steps):
-                if rospy.is_shutdown(): return 'preempted'
-                
-                if self.data.camera_data is not None:
-                    rospy.loginfo("Object detected during SCAN!")
-                    return 'detected'
-                
-                current_target_j1 = start_j1 + (target_j1 - start_j1) * (float(i+1)/steps)
-                move_manipulator([current_target_j1, -1.0, 0.3, 0.7], path_time=0.1)
-                
-            # Completed one side of the sweep
-            self.direction *= -1
-            if self.direction == 1: # Returned to start side (or completed a full cycle)
-                self.sweep_count += 1
+            # Phase 2: Left (-1.0) -> Right (1.0) in 6 seconds
+            if self.move_with_detection(-1.0, 1.0, 6.0) == 'detected': return 'detected'
+            
+            # Phase 3: Right (1.0) -> Home (0.0) in 3 seconds
+            if self.move_with_detection(1.0, 0.0, 3.0) == 'detected': return 'detected'
+            
+            self.sweep_count += 1
                 
         if self.sweep_count >= 2:
-            rospy.loginfo("SCAN finished 2 sweeps.")
+            rospy.loginfo("SCAN finished 2 sweep cycles.")
             return 'finished'
             
         return 'preempted'
+
+    def move_with_detection(self, start_j1, end_j1, duration):
+        """Helper to move joint1 while checking for camera data."""
+        steps = int(duration / 0.1)
+        for i in range(steps):
+            if rospy.is_shutdown(): return 'preempted'
+            
+            if self.data.camera_data is not None:
+                rospy.loginfo("Object detected during SCAN move!")
+                return 'detected'
+            
+            current_target_j1 = start_j1 + (end_j1 - start_j1) * (float(i+1)/steps)
+            move_manipulator([current_target_j1, -1.0, 0.3, 0.7], path_time=0.1)
+        return 'continue'
 
 class Measure(smach.State):
     def __init__(self, data):
