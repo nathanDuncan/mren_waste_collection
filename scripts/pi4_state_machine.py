@@ -12,9 +12,14 @@ try:
 except ImportError:
     HighCmd = None
 
+import socket
+import goal_position_pb2
 from open_manipulator_msgs.msg import JointPosition, KinematicsPose
 from open_manipulator_msgs.srv import SetJointPosition, SetKinematicsPose
 from master_control_script import Controller
+
+PI5_IP = "192.168.12.188"
+GOAL_PORT = 25001
 
 # Joint Presets
 JOINT_HOME = [0.0, -1.0, 0.3, 0.7]
@@ -97,10 +102,22 @@ def project_location(camera_data):
     rospy.loginfo(f"[DEBUG] location: {location}")
     return location 
 
-def send_message(data):
-    """Stub for sending data to other nodes."""
-    rospy.loginfo(f"Sending message: {data}")
-    # Dear Daniel, here is where we will message pi5
+def send_message(location):
+    """Sends the location to Pi5 using goal_position.proto."""
+    rospy.loginfo(f"Sending goal to Pi5: {location}")
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        goal = goal_position_pb2.GoalPosition()
+        goal.x = location[0]
+        goal.y = location[1]
+        goal.theta = location[2]
+        
+        serialized_data = goal.SerializeToString()
+        sock.sendto(serialized_data, (PI5_IP, GOAL_PORT))
+        rospy.loginfo(f"Goal successfully sent to {PI5_IP}:{GOAL_PORT}")
+        sock.close()
+    except Exception as e:
+        rospy.logerr(f"Failed to send goal to Pi5: {e}")
 
 # --- States ---
 
@@ -203,7 +220,7 @@ class Measure(smach.State):
             
         # Call auxiliary functions
         loc = project_location(self.data.camera_data)
-        send_message(f"Object at {loc}")
+        send_message(loc)
         
         return 'done'
 
