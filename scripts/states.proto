@@ -1,0 +1,5 @@
+syntax = "proto3";
+
+message States {
+    string action = 1; // Expected payloads: "sit", "can picked up", "stand"
+}

@@ -13,13 +13,16 @@ except ImportError:
     HighCmd = None
 
 import socket
+import threading
 import goal_position_pb2
+import states_pb2
 from open_manipulator_msgs.msg import JointPosition, KinematicsPose
 from open_manipulator_msgs.srv import SetJointPosition, SetKinematicsPose
 from master_control_script import Controller
 
 PI5_IP = "192.168.12.188"
-GOAL_PORT = 25001
+PI5_GOAL_PORT = 25001
+PI5_STATE_PORT = 25002
 
 # Joint Presets
 JOINT_HOME = [0.0, -1.0, 0.3, 0.7]
@@ -54,7 +57,51 @@ class StateMachineData:
         
         # Message handling
         self.idle_trigger = False
-        rospy.Subscriber('/idle_cmd', String, self.idle_callback)
+        
+        # Setup UDP socket for idle commands
+        self.cmd_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            self.cmd_sock.bind(("0.0.0.0", 25002))
+            self.cmd_sock.settimeout(0.5)
+            rospy.loginfo("UDP Socket bound to port 25002 for idle commands")
+        except Exception as e:
+            rospy.logerr(f"Failed to bind socket: {e}")
+
+        self.listen_thread = threading.Thread(target=self.socket_listener)
+        self.listen_thread.daemon = True
+        self.listen_thread.start()
+
+    def socket_listener(self):
+        """Thread to listen for Protobuf commands on port 25002."""
+        while not rospy.is_shutdown():
+            try:
+                data, addr = self.cmd_sock.recvfrom(1024)
+                if addr[0] != PI5_IP and PI5_IP != "192.168.12.188": # Optional IP filtering if needed
+                     # rospy.logdebug(f"Received from {addr[0]}")
+                     pass
+                
+                msg = states_pb2.States()
+                msg.ParseFromString(data)
+                
+                if msg.action in ["sit", "stand"]:
+                    rospy.loginfo(f"Received command via Protobuf: {msg.action}")
+                    self.idle_trigger = msg.action
+            except socket.timeout:
+                continue
+            except Exception as e:
+                rospy.logerr(f"Socket listener error: {e}")
+                rospy.sleep(1.0)
+
+    def send_state(self, action):
+        """Sends a state message using the already bound cmd_sock."""
+        try:
+            msg = states_pb2.States()
+            msg.action = action
+            serialized_data = msg.SerializeToString()
+            self.cmd_sock.sendto(serialized_data, (PI5_IP, PI5_STATE_PORT))
+            rospy.loginfo(f"Message sent to pi5: {action}")
+        except Exception as e:
+            rospy.logerr(f"Failed to send state: {e}")
 
     def joint_state_callback(self, msg):
         try:
@@ -77,7 +124,8 @@ class StateMachineData:
                 self.camera_data = None
 
     def idle_callback(self, msg):
-        if msg.data == "start" or msg.data == "grab":
+        """No longer used for ROS subscriber, but kept for logic reference if needed."""
+        if msg.data == "start" or msg.data == "grab" or msg.data == "sit" or msg.data == "stand":
             self.idle_trigger = msg.data
 
 def move_manipulator(joint_angles, path_time=2.0):
@@ -113,8 +161,8 @@ def send_message(location):
         goal.theta = location[2]
         
         serialized_data = goal.SerializeToString()
-        sock.sendto(serialized_data, (PI5_IP, GOAL_PORT))
-        rospy.loginfo(f"Goal successfully sent to {PI5_IP}:{GOAL_PORT}")
+        sock.sendto(serialized_data, (PI5_IP, PI5_GOAL_PORT))
+        rospy.loginfo(f"Goal successfully sent to {PI5_IP}:{PI5_GOAL_PORT}")
         sock.close()
     except Exception as e:
         rospy.logerr(f"Failed to send goal to Pi5: {e}")
@@ -241,9 +289,9 @@ class Idle(smach.State):
         
         rate = rospy.Rate(10)
         while not rospy.is_shutdown():
-            if self.data.idle_trigger == "start":
+            if self.data.idle_trigger == "stand":
                 return 'start_scan'
-            elif self.data.idle_trigger == "grab":
+            elif self.data.idle_trigger == "sit":
                 return 'grab'
             rate.sleep()
             
@@ -261,23 +309,7 @@ class Grab(smach.State):
     def execute(self, userdata):
         rospy.loginfo("Entering State: GRAB")
         
-        # 1. Sit the robot
-        if HighCmd is not None:
-            sit_cmd = HighCmd()
-            sit_cmd.head = [0xFE, 0xEF]
-            sit_cmd.levelFlag = 0xee
-            sit_cmd.mode = 5 # SIT
-            
-            if not self.data.debug:
-                rospy.loginfo("Sending SIT command...")
-                self.high_cmd_pub.publish(sit_cmd)
-                rospy.sleep(3.0) # Wait for sit animation
-            else:
-                rospy.loginfo("info: would send 0,0") # Using 0,0 for SIT velocity as requested format
-                rospy.sleep(1.0)
-        else:
-            rospy.loginfo("info: would send 0,0")
-            rospy.sleep(1.0)
+        rospy.sleep(2.0)
         
         # 2. Perform Pickup
         rospy.loginfo("Performing arm pickup sequence...")
@@ -286,6 +318,10 @@ class Grab(smach.State):
         controller.start_pickup()
         
         rospy.loginfo("Pickup sequence complete.")
+        
+        # 3. Inform Pi5 that the can has been picked up
+        self.data.send_state("can picked up")
+
         return 'finished'
 
 def main():
