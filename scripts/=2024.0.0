@@ -1,0 +1,8 @@
+Collecting openvino
+  Downloading openvino-2024.4.0-16579-cp38-cp38-manylinux2014_x86_64.whl (42.6 MB)
+Requirement already satisfied: numpy<2.1.0,>=1.16.6 in /home/nathan/capstone/.venv/lib/python3.8/site-packages (from openvino) (1.24.4)
+Collecting openvino-telemetry>=2023.2.1
+  Downloading openvino_telemetry-2025.2.0-py3-none-any.whl (25 kB)
+Requirement already satisfied: packaging in /home/nathan/capstone/.venv/lib/python3.8/site-packages (from openvino) (26.0)
+Installing collected packages: openvino-telemetry, openvino
+Successfully installed openvino-2024.4.0 openvino-telemetry-2025.2.0

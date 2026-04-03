@@ -1,7 +1,18 @@
 #!/usr/bin/env python3
 
-import sys
 import os
+import sys
+
+# Get the absolute path to the directory this script is in
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Change the working directory to the script's directory
+os.chdir(script_dir)
+
+# Add the script's directory to the Python path just in case
+if script_dir not in sys.path:
+    sys.path.append(script_dir)
+
 import json
 import numpy as np
 import cv2
@@ -20,15 +31,18 @@ if script_dir not in sys.path:
 try:
     import detection_pb2
     import image_stream_pb2
-except ImportError:
-    print("[ERROR] protobuf files (detection_pb2.py or image_stream_pb2.py) not found.")
+except ImportError as e:
+    print(f"[ERROR] Failed to import protobuf modules: {e}")
+    # This will tell you if it's 'No module named google' or the actual file
     sys.exit(1)
+
+PI4_IP = "192.168.12.128"
 
 class CanDetector:
     def __init__(self):
         # 1. Configuration
         self.network_port = 25005
-        self.target_ip = "192.168.12.128"
+        self.target_ip = PI4_IP
         self.target_port = 25006
         self.enable_vis = True
         
@@ -169,6 +183,23 @@ class CanDetector:
                     print(f"[INFO] Sent Detection: {largest_obj['dist_meters']:.2f}m at ({largest_obj['x_pos']:.0f}, {largest_obj['y_pos']:.0f})")
                 except Exception as e:
                     print(f"[ERROR] Protobuf Sending Error: {e}")
+            else:
+                # Send "no detection" frame (all negative values)
+                try:
+                    frame_pb = detection_pb2.DetectionFrame()
+                    obj_pb = frame_pb.objects.add()
+                    obj_pb.x_pos = -1.0
+                    obj_pb.y_pos = -1.0
+                    obj_pb.dist_meters = -1.0
+                    obj_pb.width_cm = -1.0
+                    obj_pb.length_cm = -1.0
+                    obj_pb.angle = -1.0
+
+                    serialized_data = frame_pb.SerializeToString()
+                    self.udp_sock.sendto(serialized_data, (self.target_ip, self.target_port))
+                    print("[INFO] Sent No Detection Frame")
+                except Exception as e:
+                    print(f"[ERROR] Protobuf Sending Error (No Detection): {e}")
 
             if self.enable_vis:
                 cv2.imshow("Can Detector Debug", debug_frame)

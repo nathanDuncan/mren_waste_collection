@@ -60,24 +60,16 @@ class ReceiverNode:
                 if len(frame.objects) > 0:
                     obj = frame.objects[0] # Take first detected object
                     
-                    # Calculate error
-                    '''
-                    float dist_meters = 3; 
-                    float width_cm = 4;    
-                    float length_cm = 5;   
-                    float angle = 6;      
-                    '''
-                    camera_data = [obj.x_pos, obj.y_pos, obj.dist_meters, obj.width_cm, obj.length_cm, obj.angle]
-                    
-                    camera_msg.data = camera_data
-
-                    
-                    # rospy.loginfo(f"🎯 Object: dist={obj.dist_meters:.2f}m, err_x={err_x:.1f}")
-                    # print(f"   -> Detection: X:{obj.x_pos:.1f}, Dist:{obj.dist_meters:.2f}m")
+                    if obj.x_pos == -1.0:
+                        # Special "no detection" frame from can_detector.py or similar
+                        camera_msg.data = [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+                    else:
+                        # Actual detection
+                        camera_data = [obj.x_pos, obj.y_pos, obj.dist_meters, obj.width_cm, obj.length_cm, obj.angle]
+                        camera_msg.data = camera_data
                 else:
-                    camera_msg.data = [-1.0, 0.0, 0.0, 0.0, 0.0]
-                    # camera_msg.w = 0.0 # No objects in frame
-                    # print("   -> Empty frame received (0 objects)")
+                    # No objects in frame
+                    camera_msg.data = [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
                 
                 self.camera_data_pub.publish(camera_msg)
                     
