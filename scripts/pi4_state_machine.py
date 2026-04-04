@@ -7,10 +7,6 @@ import smach_ros
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float32MultiArray, String
 from geometry_msgs.msg import Twist, Quaternion
-try:
-    from unitree_legged_msgs.msg import HighCmd
-except ImportError:
-    HighCmd = None
 
 import socket
 import threading
@@ -44,10 +40,7 @@ class StateMachineData:
         self.lost_count = 0
         self.max_lost = 5
         self.debug = rospy.get_param('~debug_mode', False)
-        if HighCmd is None:
-            if not self.debug:
-                rospy.logwarn("unitree_legged_msgs not found. Forcing debug mode.")
-            self.debug = True
+        
         
         if self.debug:
             rospy.loginfo("🛠 DEBUG MODE ENABLED: Unitree commands will be logged but not published.")
@@ -305,10 +298,6 @@ class Grab(smach.State):
     def __init__(self, data):
         smach.State.__init__(self, outcomes=['finished', 'preempted'])
         self.data = data
-        if HighCmd is not None:
-            self.high_cmd_pub = rospy.Publisher('/high_cmd', HighCmd, queue_size=1)
-        else:
-            self.high_cmd_pub = None
 
     def execute(self, userdata):
         rospy.loginfo("Entering State: GRAB")
