@@ -55,6 +55,7 @@ class Controller:
         self.can_global_y_pos = None
 
         # Status Flags for manipulator
+        self.centered = 0
         self.status = None
         self.object_found = False
         self.mode = None
@@ -102,13 +103,14 @@ class Controller:
             self.project_object()
 
     def timer_callback(self, event):
-        if self.mode == "search":
-            print(self.status)
-            if self.status == "Centered":
-                self.centered += 1
-            else:
-                self.centered = 0
-            print(f"Target positioned at: {self.can_global_pos}")
+        pass
+        # if self.mode == "search":
+        #     print(self.status)
+        #     if self.status == "Centered":
+        #         self.centered += 1
+        #     else:
+        #         self.centered = 0
+        #     print(f"Target positioned at: {self.can_global_pos}")
 
     def _joint_state_callback(self, msg: JointState):
         target_joints = ["joint1", "joint2", "joint3", "joint4"]
@@ -167,7 +169,15 @@ class Controller:
 
         # --- CALCULATE TARGET POSITION (The Can) ---
         # Start at the camera's lens, and move forward along its line of sight by the depth distance
-        self.can_global_pos = camera_global_pos + (camera_global_direction * self.can_dist)       
+        self.can_global_pos = camera_global_pos + (camera_global_direction * self.can_dist)
+        phi = math.atan2(self.can_global_pos[1], self.can_global_pos[0])
+        alpha = phi + self.current_joint_state[0]
+        u = [math.cos(alpha), math.sin(alpha)]
+        # print("Object located at: ", self.can_global_pos)
+        self.can_global_pos[0] = self.can_global_pos[0] - 0.25*u[0]
+        self.can_global_pos[1] = self.can_global_pos[1] - 0.25*u[1]
+        self.can_global_pos[2] = alpha
+        # print("Moving to position: ", self.can_global_pos)
 
 
     # Helper functions to move in joint/task space absolute/delta
@@ -299,7 +309,7 @@ class Controller:
     def close_gripper(self):
         msg = JointPosition()
         msg.joint_name = ["gripper"]
-        msg.position = [-0.0080]
+        msg.position = [-0.010]
         try:
             self._gripper_srv(
                 planning_group="gripper", joint_position=msg, path_time=0.5
@@ -311,7 +321,7 @@ class Controller:
     def open_gripper(self):
         msg = JointPosition()
         msg.joint_name = ["gripper"]
-        msg.position = [0.0200]
+        msg.position = [0.020]
         try:
             self._gripper_srv(
                 planning_group="gripper", joint_position=msg, path_time=0.5
@@ -392,6 +402,7 @@ class Controller:
 
     # Main methods
     def start_scan(self):
+        rospy.sleep(3.0)
         y_threshold_percentage = 0.50
         y_threshold_tolerance = 0.03
         # Since camera is not perfectly centered
@@ -409,7 +420,7 @@ class Controller:
         rospy.loginfo("Starting scan. Press Ctrl+C to cleanly exit.")
 
         # This naturally breaks when you press Ctrl+C
-        while not rospy.is_shutdown() and self.centered > 3:
+        while not rospy.is_shutdown() and self.centered < 3:
             
             if not self.object_found:
                 self.status = "No Object Detected"
@@ -628,11 +639,18 @@ class Controller:
             rospy.signal_shutdown("User interrupted")
 
 if __name__ == "__main__":
-    controller = Controller()
-    controller.move_home()
-    rospy.sleep(1.0)
-    print("Can Depth: ", controller.can_dist)
-    controller.mode = "search"
-    # controller.start_scan()
-    controller.mode = "pickup"
-    controller.start_pickup()
+    # rospy.init_node('pi4_state_machine')
+    # controller = Controller()
+    # controller.move_home()
+    # while True:
+    #     controller.open_gripper()
+        # rospy.sleep(1.0)
+        # controller.close_gripper()
+
+    # rospy.sleep(1.0)
+    # print("Can Depth: ", controller.can_dist)
+    # controller.mode = "search"
+    # # controller.start_scan()
+    # controller.mode = "pickup"
+    # controller.start_pickup()
+    print("please work")

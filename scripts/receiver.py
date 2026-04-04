@@ -67,9 +67,12 @@ class ReceiverNode:
                     float length_cm = 5;   
                     float angle = 6;      
                     '''
-                    camera_data = [obj.x_pos, obj.y_pos, obj.dist_meters, obj.width_cm, obj.length_cm, obj.angle]
+                    if obj.x_pos == -1.0:
+                        camera_msg.data = [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+                    else:
+                        camera_data = [obj.x_pos, obj.y_pos, obj.dist_meters, obj.width_cm, obj.length_cm, obj.angle]
                     
-                    camera_msg.data = camera_data
+                        camera_msg.data = camera_data
 
                     
                     # rospy.loginfo(f"🎯 Object: dist={obj.dist_meters:.2f}m, err_x={err_x:.1f}")

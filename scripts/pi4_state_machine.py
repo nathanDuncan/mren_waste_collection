@@ -23,6 +23,7 @@ from master_control_script import Controller
 PI5_IP = "192.168.12.188"
 PI5_GOAL_PORT = 25001
 PI5_STATE_PORT = 25002
+PI4_LISTEN_PORT = 25003
 
 # Joint Presets
 JOINT_HOME = [0.0, -1.0, 0.3, 0.7]
@@ -59,23 +60,25 @@ class StateMachineData:
         self.idle_trigger = False
         
         # Setup UDP socket for idle commands
-        self.cmd_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.listen_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.send_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
-            self.cmd_sock.bind(("0.0.0.0", 25002))
-            self.cmd_sock.settimeout(0.5)
-            rospy.loginfo("UDP Socket bound to port 25002 for idle commands")
+            self.listen_sock.bind(("192.168.12.128", PI4_LISTEN_PORT))
+            self.listen_sock.settimeout(0.5)
+            rospy.loginfo(f"UDP Listener Socket bound to port {PI4_LISTEN_PORT} for idle commands.")
+            
         except Exception as e:
-            rospy.logerr(f"Failed to bind socket: {e}")
+            rospy.logerr(f"Failed to bind listener socket: {e}")
 
         self.listen_thread = threading.Thread(target=self.socket_listener)
         self.listen_thread.daemon = True
         self.listen_thread.start()
 
     def socket_listener(self):
-        """Thread to listen for Protobuf commands on port 25002."""
+        """Thread to listen for Protobuf commands on port 25003."""
         while not rospy.is_shutdown():
             try:
-                data, addr = self.cmd_sock.recvfrom(1024)
+                data, addr = self.listen_sock.recvfrom(1024)
                 if addr[0] != PI5_IP and PI5_IP != "192.168.12.188": # Optional IP filtering if needed
                      # rospy.logdebug(f"Received from {addr[0]}")
                      pass
@@ -93,12 +96,12 @@ class StateMachineData:
                 rospy.sleep(1.0)
 
     def send_state(self, action):
-        """Sends a state message using the already bound cmd_sock."""
+        """Sends a state message using the dedicated send_sock"""
         try:
             msg = states_pb2.States()
             msg.action = action
             serialized_data = msg.SerializeToString()
-            self.cmd_sock.sendto(serialized_data, (PI5_IP, PI5_STATE_PORT))
+            self.send_sock.sendto(serialized_data, (PI5_IP, PI5_STATE_PORT))
             rospy.loginfo(f"Message sent to pi5: {action}")
         except Exception as e:
             rospy.logerr(f"Failed to send state: {e}")
@@ -253,17 +256,21 @@ class Measure(smach.State):
             error_y = 240 - y_pos
             rospy.loginfo(f"Error: {error_x}, {error_y}")
             
-            if abs(error_x) < 15 and abs(error_y) < 15:
+            if abs(error_x) < 18 and abs(error_y) < 18:
                 rospy.loginfo("Object centered.")
                 rospy.sleep(0.5)
                 break
                 
             # Adjust joint1 (horizontal) and joint4 (vertical)
+            if abs(error_x) > 60:
+                error_x = error_x/abs(error_x)*60
+            if abs(error_y) > 60:
+                error_y = error_y/abs(error_y)*60
             new_j1 = self.data.joint_states[0] + (error_x * kp_x)
             new_j4 = self.data.joint_states[3] - (error_y * kp_y)
             
             move_manipulator([new_j1, -1.0, 0.3, new_j4], path_time=0.1)
-            rospy.sleep(0.1)
+            rospy.sleep(0.2)
         
             
         # Call auxiliary functions
@@ -277,13 +284,10 @@ class Idle(smach.State):
         smach.State.__init__(self, outcomes=['start_scan', 'grab', 'preempted'])
         self.data = data
 
-        # pi4_state_machine.py - line 210
-# Ensure this is the ONLY subscriber to /camera_data
-# rospy.Subscriber('/camera_data', Float32MultiArray, data.update_camera)
-
     def execute(self, userdata):
         rospy.loginfo("Entering State: IDLE")
         self.data.idle_trigger = False
+        move_manipulator(JOINT_HOME)
 
         # Dear Daniel, here the robot waits for commands from the pi5
         
@@ -331,6 +335,8 @@ def main():
     
     data = StateMachineData()
     rospy.Subscriber('/camera_data', Float32MultiArray, data.update_camera)
+
+    rospy.sleep(5.0)
     
     # Create SMACH state machine
     sm = smach.StateMachine(outcomes=['shutdown'])
