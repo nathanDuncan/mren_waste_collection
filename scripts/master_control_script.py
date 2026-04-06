@@ -170,13 +170,18 @@ class Controller:
         # --- CALCULATE TARGET POSITION (The Can) ---
         # Start at the camera's lens, and move forward along its line of sight by the depth distance
         self.can_global_pos = camera_global_pos + (camera_global_direction * self.can_dist)
+        self.true_can_pose = self.can_global_pos.copy()
+        #rospy.loginfo(f"can location: {self.can_global_pos}")
         phi = math.atan2(self.can_global_pos[1], self.can_global_pos[0])
-        alpha = phi + self.current_joint_state[0]
-        u = [math.cos(alpha), math.sin(alpha)]
+        self.alpha = phi + self.can_angle
+        self.u = [math.cos(self.alpha), math.sin(self.alpha)]
+        #rospy.loginfo(f"phi: {phi*180.0/np.pi}")
+        #rospy.loginfo(f"can_ang: {self.can_angle*180/np.pi}")
+        #rospy.loginfo(f"alpha: {alpha*180.0/np.pi} \n u: {u}")
         # print("Object located at: ", self.can_global_pos)
-        self.can_global_pos[0] = self.can_global_pos[0] - 0.25*u[0]
-        self.can_global_pos[1] = self.can_global_pos[1] - 0.25*u[1]
-        self.can_global_pos[2] = alpha
+        self.can_global_pos[0] = self.can_global_pos[0] - 0.08*math.cos(self.alpha) #self.u[0]
+        self.can_global_pos[1] = self.can_global_pos[1] - 0.08*math.sin(self.alpha) #self.u[1]
+        self.can_global_pos[2] = self.alpha*180.0/np.pi
         # print("Moving to position: ", self.can_global_pos)
 
 
@@ -503,8 +508,8 @@ class Controller:
 
         self.close_gripper()
         self.move_home()
-        self.move_to_dropoff()
-        self.open_gripper()
+        #self.move_to_dropoff()
+        #self.open_gripper()
         self.move_stable()
         return
 
@@ -515,9 +520,7 @@ class Controller:
 
         try:
             while not rospy.is_shutdown() and safe_to_pickup:
-                start_flag = input("Type 's' to start (Ctrl+C to quit): ")
-                if start_flag != "s":
-                    continue
+                rospy.sleep(1.0)
 
                 # Setup
                 self.move_to_start()
@@ -632,7 +635,7 @@ class Controller:
                             prev_move = "down"
 
                 self._pick_up_and_drop_off()
-
+                break
         except KeyboardInterrupt:
             rospy.loginfo("Shutting down cleanly (Ctrl+C)")
         finally:

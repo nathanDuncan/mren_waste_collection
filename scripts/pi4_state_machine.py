@@ -142,7 +142,9 @@ def project_location(camera_data):
     """Stub for projecting pixel data to GO1 X,Y."""
     rospy.loginfo(f"Projecting location for object at {camera_data[0]}, {camera_data[1]}")
     controller.project_object()
-    location = [controller.can_global_pos[0], controller.can_global_pos[1], 0.0]
+    location = [controller.can_global_pos[0], controller.can_global_pos[1], controller.can_global_pos[2]]
+    rospy.loginfo(f"[Debug] true can: {controller.true_can_pose} \n     alpha: {controller.alpha*180.0/3.1415926}")
+    rospy.loginfo(f"[DEBUG] u: {controller.u}")
     rospy.loginfo(f"[DEBUG] location: {location}")
     return location 
 

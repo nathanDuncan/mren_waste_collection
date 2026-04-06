@@ -7,9 +7,9 @@ PORT = 25001
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 goal = goal_position_pb2.GoalPosition()
-goal.x = 0.99
-goal.y = 0.0
-goal.theta = 0.0
+goal.x = 0.5
+goal.y = -0.5
+goal.theta = -45.0
 
 serialized_data = goal.SerializeToString()
 sock.sendto(serialized_data, (PI5_IP, PORT))
