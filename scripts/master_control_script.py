@@ -511,6 +511,8 @@ class Controller:
         #self.move_to_dropoff()
         #self.open_gripper()
         self.move_stable()
+        rospy.loginfo("Pickup complete. Waiting 15 seconds before returning to state machine...")
+        rospy.sleep(15.0)
         return
 
     def start_pickup(self):
@@ -636,10 +638,8 @@ class Controller:
 
                 self._pick_up_and_drop_off()
                 break
-        except KeyboardInterrupt:
-            rospy.loginfo("Shutting down cleanly (Ctrl+C)")
-        finally:
-            rospy.signal_shutdown("User interrupted")
+        except Exception as e:
+            rospy.logerr(f"Error in start_pickup: {e}")
 
 if __name__ == "__main__":
     # rospy.init_node('pi4_state_machine')
