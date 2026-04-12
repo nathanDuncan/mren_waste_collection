@@ -50,7 +50,7 @@ class CanDetector:
         # Assuming the same relative path as in trash_detection_node.py
         # package_path/models/segmentation_nano_openvino_model
         # But here it's likely in the same dir or models dir relative to script
-        self.model_path = os.path.join(script_dir, '..', 'models', 'segmentation_nano_openvino_model')
+        self.model_path = os.path.join(script_dir, '..', 'models', 'segmentation_small_openvino_model')
         if not os.path.exists(self.model_path):
             # Fallback for local BEST.PT if available
             self.model_path = os.path.join(script_dir, 'best.pt')
@@ -153,6 +153,9 @@ class CanDetector:
                         cv2.circle(debug_frame, (cx_int, cy_int), 5, (0, 0, 255), -1)
                         cv2.putText(debug_frame, f"{distance_meters:.2f}m", (cx_int + 10, cy_int), 
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+
+                    print(f"[INFO] Angle Major: {float(angle_major)} Deg")
+                    angle_major = float(angle_major)*np.pi/180.0
 
                     obj_data = {
                         "x_pos": float(cx), "y_pos": float(cy),
